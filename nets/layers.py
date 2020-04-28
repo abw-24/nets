@@ -2,7 +2,7 @@
 from tensorflow.keras import layers
 
 
-class Block(layers.Layer):
+class SequentialBlock(layers.Layer):
     """
     Base block class. Creates a generic call method referencing
     self._block_layers, which is utilized by each child class to
@@ -10,7 +10,7 @@ class Block(layers.Layer):
     """
 
     def __init__(self):
-        super(Block, self).__init__()
+        super(SequentialBlock, self).__init__()
         self._block_layers = []
 
     def call(self, inputs):
@@ -20,7 +20,7 @@ class Block(layers.Layer):
         return x
 
 
-class DenseBlock(Block):
+class DenseBlock(SequentialBlock):
     """
     Block of densely connected layers.
     """
@@ -50,7 +50,7 @@ class DenseBlock(Block):
         }
 
 
-class CNNBlock(Block):
+class CNNBlock(SequentialBlock):
     """
     2d CNN Block (series of convolution and pooling ops, plus flattening).
     Assumes reshaping and input formatting is done already, and expects
@@ -88,7 +88,7 @@ class CNNBlock(Block):
         }
 
 
-class Softmax(Block):
+class Softmax(SequentialBlock):
     """
     Output layer (for completeness).
     """
