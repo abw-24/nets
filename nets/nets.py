@@ -39,14 +39,14 @@ class MLP(Sequential):
         ]
 
 
-class CNN(Sequential):
+class BasicCNN(Sequential):
     """
     CNN. Allows a configurable number of convolutional layers followed by
      a configurable dense block before the final output.
     """
     def __init__(self, config):
 
-        super(CNN, self).__init__()
+        super(BasicCNN, self).__init__()
 
         self._config = config
         self._conv_dims = self._config["conv_dims"]
