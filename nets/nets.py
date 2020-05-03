@@ -6,16 +6,17 @@ from nets.layers import *
 
 class Sequential(tf.keras.Model):
     """
-    Generic call for sequential models.
+    Generic call for sequential models. Includes a
+    training flag in the trace.
     """
     def __init__(self):
         super(Sequential, self).__init__()
         self._model_layers = []
 
-    def call(self, inputs):
+    def call(self, inputs, training=None):
         x = inputs
         for lyr in self._model_layers:
-            x = lyr(x)
+            x = lyr(x, training)
         return x
 
 
@@ -49,7 +50,7 @@ class BasicCNN(Sequential):
         super(BasicCNN, self).__init__()
 
         self._config = config
-        self._conv_dims = self._config["conv_dims"]
+        self._conv_dims = self._config["filters"]
         self._conv_activation = self._config["conv_activation"]
         self._stride = self._config["stride"]
         self._pool = self._config["pool"]

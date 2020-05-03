@@ -18,6 +18,7 @@ def model_init(model, config, input_dim):
     return model
 
 
+@tf.function
 def grad(model, x, y):
     """
     Takes a compiled model and takes the gradients wrt
