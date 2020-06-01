@@ -23,7 +23,7 @@ class Sequential(tf.keras.Model):
 class MLP(Sequential):
     """
     Fully connected model with a configurable number of hidden layers
-    and output units.
+    and output units with the softmax
     """
     def __init__(self, config):
 
@@ -33,10 +33,11 @@ class MLP(Sequential):
         self._dims = self._config["dense_dims"]
         self._activation = self._config["dense_activation"]
         self._output_dim = self._config["output_dim"]
+        self._output_activation = self._config["output_activation"]
 
         self._model_layers = [
             DenseBlock(dims=self._dims, activation=self._activation),
-            Softmax(dims=self._output_dim)
+            DenseBlock(dims=[self._output_dim], activation=self._output_activation)
         ]
 
 

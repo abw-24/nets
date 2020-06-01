@@ -99,19 +99,3 @@ class CNNBlock(SequentialBlock):
             "activation": self._activation,
             "pool": self._pool
         }
-
-
-class Softmax(SequentialBlock):
-    """
-    Output layer (for completeness).
-    """
-
-    def __init__(self, dims):
-        super(Softmax, self).__init__()
-        self._dims = dims
-        self._block_layers = [layers.Dense(self._dims)]
-
-    def get_config(self):
-        return {
-            "dims": self._dims,
-        }

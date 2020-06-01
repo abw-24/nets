@@ -42,12 +42,13 @@ def mlp():
         "dense_dims": [32],
         "dense_activation": "relu",
         "output_dim": 10,
+        "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
         "epochs": 1
     }
 
-    compiled_model = t.model_init(nets.MLP(config), config, (None, 784))
+    compiled_model = t.model_init(nets.SoftmaxMLP(config), config, (None, 784))
 
     for _ in range(config["epochs"]):
         loss = None
