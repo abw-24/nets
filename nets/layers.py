@@ -53,20 +53,30 @@ class DenseBlock(SequentialBlock):
 
 
 class CNNBlock(SequentialBlock):
-    """
-    2d CNN Block (series of convolution and pooling ops, plus flattening).
-    Assumes reshaping and input formatting is done already, and expects
-    the input dim to be dynamically assigned with build().
-    """
 
-    def __init__(self, filters, kernel=3, stride=3, activation="relu", pool=True):
+    def __init__(self, filters, kernel=3, stride=(1,1), activation="relu", pool=True):
+        """
+        2d CNN Block (series of convolution and pooling ops, plus flattening).
+        Assumes reshaping and input formatting is done already, and expects
+        the input dim to be dynamically assigned with build(). Note: if
+        you wish to specify a non-square kernel (shame on you), specify as a
+        tuple.
+
+        :param filters: List of integers specifying the number of integers.
+            The length implicitly specifies the number of convolution+pooling
+            layers in the block.
+        :param kernel: Kernel size for each filter (int or tuple)
+        :param stride: Kernel stride (int)
+        :param activation: Activation function (str)
+        :param pool: Flag to add pooling layer after each convolution
+        """
 
         super(CNNBlock, self).__init__()
 
-        self._activation = activation
         self._pool = pool
+        self._activation = activation
 
-        # the number of filters specifies the depth
+        # the length of the filter array specifies the number of convolution layers
         if isinstance(filters, int):
             self._filters = [filters]
         else:
@@ -77,14 +87,14 @@ class CNNBlock(SequentialBlock):
         else:
             self._kernel = kernel
         # fill out a list of the appropriate depth if not provided
-        if isinstance(stride, int) or isinstance(stride, tuple):
+        if isinstance(stride, int):
             self._stride = [stride]*len(filters)
         else:
             self._stride = stride
 
         for f, k, s in zip(self._filters, self._kernel, self._stride):
             self._block_layers.append(
-                    layers.Conv2D(f, k, strides=s, padding='same', activation=self._activation)
+                    layers.Conv2D(f, k, strides=s, padding="valid", activation=self._activation)
             )
             if self._pool:
                 self._block_layers.append(layers.MaxPooling2D())
@@ -97,5 +107,6 @@ class CNNBlock(SequentialBlock):
             "kernel": self._kernel,
             "stride": self._stride,
             "activation": self._activation,
+            "padding": self._padding,
             "pool": self._pool
         }

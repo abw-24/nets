@@ -23,7 +23,7 @@ class Sequential(tf.keras.Model):
 class MLP(Sequential):
     """
     Fully connected model with a configurable number of hidden layers
-    and output units with the softmax
+    and output units
     """
     def __init__(self, config):
 
@@ -31,9 +31,9 @@ class MLP(Sequential):
 
         self._config = config
         self._dims = self._config["dense_dims"]
-        self._activation = self._config["dense_activation"]
         self._output_dim = self._config["output_dim"]
-        self._output_activation = self._config["output_activation"]
+        self._activation = self._config.get("dense_activation", "relu")
+        self._output_activation = self._config.get("output_activation", "softmax")
 
         self._model_layers = [
             DenseBlock(dims=self._dims, activation=self._activation),
@@ -44,24 +44,26 @@ class MLP(Sequential):
 class BasicCNN(Sequential):
     """
     CNN. Allows a configurable number of convolutional layers followed by
-     a configurable dense block before the final output.
+     a configurable dense block before the final output layer.
     """
     def __init__(self, config):
 
         super(BasicCNN, self).__init__()
 
         self._config = config
-        self._conv_dims = self._config["filters"]
-        self._conv_activation = self._config["conv_activation"]
-        self._stride = self._config["stride"]
-        self._pool = self._config["pool"]
+        self._n_filters = self._config["filters"]
+        self._kernel = self._config.get("kernel", 3)
+        self._conv_activation = self._config.get("conv_activation", "relu")
+        self._stride = self._config.get("stride", (1,1))
+        self._pool = self._config.get("pool", True)
+        self._padding = self._config.get("padding", "same"),
         self._dense_dims = self._config["dense_dims"]
-        self._dense_activation = self._config["dense_activation"]
+        self._dense_activation = self._config.get("dense_activation", "relu")
         self._output_dim = self._config["output_dim"]
+        self._output_activation = self._config.get("output_activation", "softmax")
 
         self._model_layers = [
-            CNNBlock(self._conv_dims, activation=self._conv_activation,
-                     stride=self._stride, pool=self._pool),
+            CNNBlock(self._n_filters, self._kernel, self._stride, self._conv_activation, self._pool),
             DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
-            Softmax(dims=self._output_dim)
+            DenseBlock(dims=[self._output_dim], activation=self._output_activation)
         ]
