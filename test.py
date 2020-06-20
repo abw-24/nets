@@ -78,9 +78,8 @@ def basic_cnn():
         .batch(32)
 
     config = {
-        "filters": [8, 4],
-        "kernel": [3, 3],
-        "padding": "same",
+        "filters": [4, 8, 16],
+        "kernel": [3, 3, 3],
         "conv_activation": "relu",
         "dense_dims": [32],
         "dense_activation": "relu",

@@ -45,12 +45,6 @@ class DenseBlock(SequentialBlock):
             layers.Dense(u, a) for u, a in zip(self._dims, self._activation)
             ]
 
-    def get_config(self):
-        return {
-            "dims": self._dims,
-            "activation": self._activation
-        }
-
 
 class CNNBlock(SequentialBlock):
 
@@ -62,9 +56,9 @@ class CNNBlock(SequentialBlock):
         you wish to specify a non-square kernel (shame on you), specify as a
         tuple.
 
-        :param filters: List of integers specifying the number of integers.
-            The length implicitly specifies the number of convolution+pooling
-            layers in the block.
+        :param filters: List of integers specifying the number of feature filters in
+            each layer. The length implicitly specifies the number of
+            convolution+pooling layers in the block.
         :param kernel: Kernel size for each filter (int or tuple)
         :param stride: Kernel stride (int)
         :param activation: Activation function (str)
@@ -94,19 +88,9 @@ class CNNBlock(SequentialBlock):
 
         for f, k, s in zip(self._filters, self._kernel, self._stride):
             self._block_layers.append(
-                    layers.Conv2D(f, k, strides=s, padding="valid", activation=self._activation)
+                    layers.Conv2D(f, k, strides=s, padding="same", activation=self._activation)
             )
             if self._pool:
                 self._block_layers.append(layers.MaxPooling2D())
 
         self._block_layers.append(layers.Flatten())
-
-    def get_config(self):
-        return {
-            "filters": self._filters,
-            "kernel": self._kernel,
-            "stride": self._stride,
-            "activation": self._activation,
-            "padding": self._padding,
-            "pool": self._pool
-        }
