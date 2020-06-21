@@ -78,9 +78,9 @@ def basic_cnn():
         .batch(32)
 
     config = {
-        "filters": [8, 4],
+        "filters": [16, 32],
         "kernel": [3, 3],
-        "padding": "same",
+        "padding": ["same", "same"],
         "conv_activation": "relu",
         "dense_dims": [32],
         "dense_activation": "relu",
@@ -95,11 +95,14 @@ def basic_cnn():
 
     for _ in range(config["epochs"]):
         loss = 0.0
+        step = 0
         for x, y in train_ds:
-            loss, grads = t.grad(compiled_model, x, y)
+            loss_, grads = t.grad(compiled_model, x, y)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
-        print("Epoch loss: {loss}".format(loss=loss))
+            loss += loss_
+            step += 1
+        print("Epoch loss: {loss}".format(loss=loss/float(step)))
 
 
 if __name__ == "__main__":

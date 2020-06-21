@@ -14,6 +14,6 @@ def get_tf(module, obj_dict):
     :param obj_dict: Object/kwarg dictionary as outlined above
     :return: TF object
     """
-    obj, kwargs = obj_dict.popitem()
+    obj, kwargs = list(obj_dict.items())[0]
     return getattr(module, obj)(**kwargs)
 
