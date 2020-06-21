@@ -27,14 +27,14 @@ class MLP(tf.keras.Model):
     def call(self, inputs, training=None):
         x = inputs
         for lyr in self._model_layers:
-            x = lyr(x, training)
+            x = lyr(x, training=training)
         return x
 
 
 class BasicCNN(tf.keras.Model):
     """
     CNN. Allows a configurable number of convolutional layers via the CNNBlock,
-    followed by a configurable dense block before the final output layer.
+    followed by a configurable dense block before a final output layer.
     """
     def __init__(self, config):
 
@@ -45,6 +45,7 @@ class BasicCNN(tf.keras.Model):
         self._kernel = self._config.get("kernel", 3)
         self._conv_activation = self._config.get("conv_activation", "relu")
         self._stride = self._config.get("stride", (1,1))
+        self._padding = self._config.get("padding", "same")
         self._pool = self._config.get("pool", True)
         self._dense_dims = self._config["dense_dims"]
         self._dense_activation = self._config.get("dense_activation", "relu")
@@ -52,7 +53,7 @@ class BasicCNN(tf.keras.Model):
         self._output_activation = self._config.get("output_activation", "softmax")
 
         self._model_layers = [
-            CNNBlock(self._n_filters, self._kernel, self._stride, self._conv_activation, self._pool),
+            CNNBlock(self._n_filters, self._kernel, self._stride, self._padding, self._conv_activation, self._pool),
             DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
             DenseBlock(dims=[self._output_dim], activation=self._output_activation)
         ]
@@ -60,5 +61,5 @@ class BasicCNN(tf.keras.Model):
     def call(self, inputs, training=None):
         x = inputs
         for lyr in self._model_layers:
-            x = lyr(x, training)
+            x = lyr(x, training=training)
         return x
