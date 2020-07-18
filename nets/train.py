@@ -3,17 +3,20 @@ import tensorflow as tf
 from nets.utils import get_tf
 
 
-def model_init(model, config, input_dim):
+def model_init(model, loss, optimizer, input_dim):
     """
     Build and compile model with configured optimizer/loss.
-    :param mode_class: TF keras (nets) model class
-    :param config: Configuration dictionary
+
+    :param model: Instantiated keras model
+    :param loss: Loss dictionary
+    :param optimizer: Optimizer dictionary
+    :param input_dim: Input dimension
     :return: Built and compiled nets tf.keras model
     """
     model.build(input_dim)
     model.compile(
-            optimizer=get_tf(tf.keras.optimizers, config["optimizer"]),
-            loss=get_tf(tf.keras.losses, config["loss"])
+            optimizer=get_tf(tf.keras.optimizers, optimizer),
+            loss=get_tf(tf.keras.losses, loss)
     )
     return model
 
