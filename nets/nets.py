@@ -31,6 +31,11 @@ class MLP(BaseModel):
             x = lyr(x, training=training)
         return x
 
+    def get_config(self):
+        config = super(MLP, self).get_config()
+        config.update({"config": self._config})
+        return config
+
 
 class BasicCNN(BaseModel):
     """
@@ -73,6 +78,11 @@ class BasicCNN(BaseModel):
             x = lyr(x, training=training)
         return x
 
+    def get_config(self):
+        config = super(BasicCNN, self).get_config()
+        config.update({"config": self._config})
+        return config
+
 
 class ResNet(BaseModel):
     """
@@ -103,13 +113,13 @@ class ResNet(BaseModel):
         self._output_activation = self._config.get("output_activation", "softmax")
 
         if self._n_paths is None:
-            residual = ResidualBlock(
+            resblock = ResidualBlock(
                     block_depth=self._res_depth,
                     filters=self._res_filters,
                     activation=self._res_activation
             )
         else:
-            residual = MultiPathResidualBlock(
+            resblock = MultiPathResidualBlock(
                     block_depth=self._res_depth,
                     n_paths=self._n_paths,
                     filters=self._res_filters,
@@ -125,7 +135,7 @@ class ResNet(BaseModel):
                     activation=self._conv_activation,
                     pool=self._pool
             ),
-            residual,
+            resblock,
             Flatten(),
             DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
             DenseBlock(dims=[self._output_dim], activation=self._output_activation)
@@ -136,3 +146,8 @@ class ResNet(BaseModel):
         for lyr in self._model_layers:
             x = lyr(x, training=training)
         return x
+
+    def get_config(self):
+        config = super(ResNet, self).get_config()
+        config.update({"config": self._config})
+        return config

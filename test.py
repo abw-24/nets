@@ -108,6 +108,7 @@ def resnet():
     """
     import nets.nets as nets
     import nets.train as t
+    import nets.layers as layers
 
     # load mnist data, reshape to have channel dim, and normalize to 0-1
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -120,10 +121,10 @@ def resnet():
         .batch(32)
 
     config = {
-        "conv_filters": [16],
-        "res_filters": [[32, 32], [64, 64]],
-        "res_depth": 2,
-        "dense_dims": [32],
+        "conv_filters": [24],
+        "res_filters": [8, 24],
+        "res_depth": 1,
+        "dense_dims": [24],
         "output_dim": 10,
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
@@ -131,7 +132,12 @@ def resnet():
         "epochs": 10
     }
 
-    compiled_model = t.model_init(nets.ResNet(config), config, (None, 28, 28, 1))
+    compiled_model = t.model_init(
+            nets.ResNet(config),
+            config["loss"],
+            config["optimizer"],
+            (None, 28, 28, 1)
+    )
 
     for _ in range(config["epochs"]):
         loss = 0.0
