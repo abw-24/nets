@@ -1,5 +1,6 @@
 
 from tensorflow.keras import layers as klayers
+import tensorflow as tf
 
 
 class SequentialBlock(klayers.Layer):
@@ -11,8 +12,8 @@ class SequentialBlock(klayers.Layer):
      the call method.
     """
 
-    def __init__(self):
-        super(SequentialBlock, self).__init__()
+    def __init__(self, **kwargs):
+        super(SequentialBlock, self).__init__(**kwargs)
         self._block_layers = []
 
     def call(self, inputs, training=False):
@@ -27,9 +28,9 @@ class DenseBlock(SequentialBlock):
     Block of densely connected layers.
     """
 
-    def __init__(self, dims, activation):
+    def __init__(self, dims, activation, **kwargs):
 
-        super(DenseBlock, self).__init__()
+        super(DenseBlock, self).__init__(**kwargs)
 
         if isinstance(dims, int):
             self._dims = [dims]
@@ -63,7 +64,8 @@ class ConvBlock(SequentialBlock):
             padding="same",
             activation="relu",
             pool=True,
-            batch_norm=False
+            batch_norm=False,
+            **kwargs
     ):
         """
         2d CNN Block (series of convolution and pooling ops). Assumes reshaping and
@@ -82,7 +84,7 @@ class ConvBlock(SequentialBlock):
         :return:
         """
 
-        super(ConvBlock, self).__init__()
+        super(ConvBlock, self).__init__(**kwargs)
 
         self._pool_flag = pool
         self._activation = activation
@@ -130,7 +132,7 @@ class ConvBlock(SequentialBlock):
 
 class ResidualLayer(klayers.Layer):
 
-    def __init__(self, filters, activation="relu"):
+    def __init__(self, filters, activation="relu", **kwargs):
         """
         Single 2D convolutional block (of configurable depth) plus a residual connection
         at the end. Assumes "same" padding, so residual connection dims will match.
@@ -141,7 +143,7 @@ class ResidualLayer(klayers.Layer):
         :param activation: Activation function (str)
         """
 
-        super(ResidualLayer, self).__init__()
+        super(ResidualLayer, self).__init__(**kwargs)
 
         self._conv_activation = activation
         self._conv_layer = ConvBlock(
@@ -174,7 +176,7 @@ class ResidualLayer(klayers.Layer):
 
 class MultiPathResidualLayer(klayers.Layer):
 
-    def __init__(self, n_paths, filters, activation="relu"):
+    def __init__(self, n_paths, filters, activation="relu", **kwargs):
         """
         Multiple 2D convolutional block paths (of configurable depth) merged
         plus a residual connection. Assumes "same" padding, so residual
@@ -188,7 +190,7 @@ class MultiPathResidualLayer(klayers.Layer):
         :param activation: Activation function (str)
         """
 
-        super(MultiPathResidualLayer, self).__init__()
+        super(MultiPathResidualLayer, self).__init__(**kwargs)
 
         self._n_paths = n_paths
         self._conv_activation = activation
@@ -246,9 +248,9 @@ class ResidualBlock(SequentialBlock):
 
     """
 
-    def __init__(self, block_depth, filters, activation="relu"):
+    def __init__(self, block_depth, filters, activation="relu", **kwargs):
 
-        super(ResidualBlock, self).__init__()
+        super(ResidualBlock, self).__init__(**kwargs)
 
         self._block_depth = block_depth
         self._block_filters = filters
@@ -282,9 +284,9 @@ class MultiPathResidualBlock(SequentialBlock):
 
     """
 
-    def __init__(self, block_depth, n_paths, filters, activation="relu"):
+    def __init__(self, block_depth, n_paths, filters, activation="relu", **kwargs):
 
-        super(MultiPathResidualBlock, self).__init__()
+        super(MultiPathResidualBlock, self).__init__(**kwargs)
 
         self._block_depth = block_depth
         self._n_paths = n_paths
@@ -318,3 +320,56 @@ class MultiPathResidualBlock(SequentialBlock):
             "activation": self._res_activation,
         })
         return config
+
+
+class VAESampling(klayers.Layer):
+
+    def call(self, inputs):
+        z_mean, z_log_var = inputs
+        epsilon = tf.keras.backend.random_normal(
+                shape=(tf.shape(z_mean)[0],
+                       tf.shape(z_mean)[1])
+        )
+        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+
+
+class DenseEncoder(klayers.Layer):
+
+    def __init__(self, mapping_dims, latent_dim, activation="relu", **kwargs):
+        super(DenseEncoder, self).__init__(**kwargs)
+
+        self._encode_block = DenseBlock(mapping_dims, activation=activation)
+        self._latent_mean = klayers.Dense(latent_dim)
+        self._latent_log_var = klayers.Dense(latent_dim)
+        self._sampling = VAESampling()
+
+    def call(self, inputs):
+        x = self._encode_block(inputs)
+        z_mean = self._latent_mean(x)
+        z_log_var = self._latent_log_var(x)
+        z = self._sampling((z_mean, z_log_var))
+        return z_mean, z_log_var, z
+
+
+class DenseDecoder(klayers.Layer):
+
+    def __init__(self, input_dim, inverse_mapping_dims, activation="relu", **kwargs):
+        super(DenseDecoder, self).__init__(**kwargs)
+        self._decode_block = DenseBlock(inverse_mapping_dims, activation=activation)
+        self._output = klayers.Dense(input_dim)
+
+    def call(self, inputs):
+        x = self._decode_block(inputs)
+        return self._output(x)
+
+
+class ConvEncoder(klayers.Layer):
+
+    def __init__(self):
+        super(ConvEncoder, self).__init__()
+
+
+class ConvDecoder(klayers.Layer):
+
+    def __init__(self):
+        super(ConvDecoder, self).__init__()

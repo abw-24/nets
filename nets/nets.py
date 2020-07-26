@@ -87,7 +87,7 @@ class BasicCNN(BaseModel):
 class ResNet(BaseModel):
     """
     ResNet CNN. Allows a configurable number of convolutional layers via the CNNBlock,
-    followed by a configurable ResidualBlock
+    followed by a configurable ResidualBlock.
     """
     def __init__(self, config):
 
@@ -151,3 +151,37 @@ class ResNet(BaseModel):
         config = super(ResNet, self).get_config()
         config.update({"config": self._config})
         return config
+
+
+class DenseVAE(BaseModel):
+
+    def __init__(self, config, **kwargs):
+
+        super(DenseVAE, self).__init__(name="VAE", **kwargs)
+
+        self._config = config
+        self._input_dim = self._config["input_dim"]
+        self._encoding_dims = self._config["encoding_dims"]
+        self._latent_dim = self._config["latent_dim"]
+        self._activation = self._config["activation"]
+
+        self._encoder = DenseEncoder(
+                mapping_dims=self._encoding_dims,
+                latent_dim=self._latent_dim,
+                activation=self._activation
+        )
+        self._decoder = DenseDecoder(
+                input_dim=self._input_dim,
+                inverse_mapping_dims=self._encoding_dims[::-1],
+                activation=self._activation
+        )
+
+    def call(self, inputs, training=False):
+        z_mean, z_log_var, z = self._encoder(inputs)
+        reconstructed = self._decoder(z)
+        # add kl loss as a zero arg lambda funtion to make it callable
+        kl_loss = lambda: -0.5 * tf.reduce_mean(
+            z_log_var - tf.square(z_mean) - tf.exp(z_log_var) + 1
+        )
+        self.add_loss(kl_loss)
+        return reconstructed

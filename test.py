@@ -45,10 +45,15 @@ def mlp():
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
-        "epochs": 3
+        "epochs": 5
     }
 
-    compiled_model = t.model_init(nets.MLP(config), config, (None, 784))
+    compiled_model = t.model_init(
+            nets.MLP(config),
+            config["loss"],
+            config["optimizer"],
+            (None, 784)
+    )
 
     for _ in range(config["epochs"]):
         loss = 0.0
@@ -84,10 +89,15 @@ def basic_cnn():
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
-        "epochs": 3
+        "epochs": 5
     }
 
-    compiled_model = t.model_init(nets.BasicCNN(config), config, (None, 28, 28, 1))
+    compiled_model = t.model_init(
+            nets.BasicCNN(config),
+            config["loss"],
+            config["optimizer"],
+            (None, 28, 28, 1)
+    )
 
     for _ in range(config["epochs"]):
         loss = 0.0
@@ -108,7 +118,6 @@ def resnet():
     """
     import nets.nets as nets
     import nets.train as t
-    import nets.layers as layers
 
     # load mnist data, reshape to have channel dim, and normalize to 0-1
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -129,7 +138,7 @@ def resnet():
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
-        "epochs": 10
+        "epochs": 5
     }
 
     compiled_model = t.model_init(
@@ -151,11 +160,55 @@ def resnet():
         print("Epoch loss: {loss}".format(loss=loss/float(step)))
 
 
+@smoke_decorator
+def dense_vae():
+    """
+    Test mlp on mnist data.
+    """
+    import nets.nets as nets
+    import nets.train as t
+
+    # load mnist data, flatten, and normalize to 0-1
+    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    x_train = x_train.reshape((x_train.shape[0], 784))
+    x_train = x_train / 255.0
+
+    # create a batch feed from the train tensors
+    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)) \
+        .shuffle(10000) \
+        .batch(32)
+
+    config = {
+        "input_dim": 784,
+        "encoding_dims": [64, 32],
+        "latent_dim": 10,
+        "activation": "relu",
+        "optimizer": {"Adam": {"learning_rate": 0.001}},
+        "loss": {"MeanAbsoluteError": {}},
+        "epochs": 5
+    }
+
+    compiled_model = t.model_init(
+            nets.DenseVAE(config),
+            config["loss"],
+            config["optimizer"],
+            (None, 784)
+    )
+
+    for _ in range(config["epochs"]):
+        loss = 0.0
+        for x, y in train_ds:
+            loss, grads = t.grad(compiled_model, x, x)
+            updates = zip(grads, compiled_model.trainable_variables)
+            compiled_model.optimizer.apply_gradients(updates)
+        print("Epoch loss: {loss}".format(loss=loss))
+
+
 if __name__ == "__main__":
 
     tf.keras.backend.set_floatx('float64')
 
-    tests = [resnet]
+    tests = [dense_vae]
 
     for t in tests:
         status = "passed!" if t() else "failed!"
