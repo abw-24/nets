@@ -323,6 +323,10 @@ class MultiPathResidualBlock(SequentialBlock):
 
 
 class VAESampling(klayers.Layer):
+    """
+    Samples from distribution defined by the latent layer values to
+    generate concrete values from which to decode.
+    """
 
     def call(self, inputs):
         z_mean, z_log_var = inputs
@@ -336,11 +340,19 @@ class VAESampling(klayers.Layer):
 class DenseEncoder(klayers.Layer):
 
     def __init__(self, mapping_dims, latent_dim, activation="relu", **kwargs):
+
         super(DenseEncoder, self).__init__(**kwargs)
 
-        self._encode_block = DenseBlock(mapping_dims, activation=activation)
-        self._latent_mean = klayers.Dense(latent_dim)
-        self._latent_log_var = klayers.Dense(latent_dim)
+        self._mapping_dims = mapping_dims
+        self._latent_dim = latent_dim
+        self._activation = activation
+
+        self._encode_block = DenseBlock(
+                self._mapping_dims,
+                activation=self._activation
+        )
+        self._latent_mean = klayers.Dense(self._latent_dim)
+        self._latent_log_var = klayers.Dense(self._latent_dim)
         self._sampling = VAESampling()
 
     def call(self, inputs):
@@ -350,26 +362,40 @@ class DenseEncoder(klayers.Layer):
         z = self._sampling((z_mean, z_log_var))
         return z_mean, z_log_var, z
 
+    def get_config(self):
+        config = super(DenseEncoder, self).get_config()
+        config.update({
+            "mapping_dims": self._mapping_dims,
+            "latent_dim": self._latent_dim,
+            "activation": self._activation
+        })
+        return config
+
 
 class DenseDecoder(klayers.Layer):
 
     def __init__(self, input_dim, inverse_mapping_dims, activation="relu", **kwargs):
         super(DenseDecoder, self).__init__(**kwargs)
-        self._decode_block = DenseBlock(inverse_mapping_dims, activation=activation)
-        self._output = klayers.Dense(input_dim)
+
+        self._input_dim = input_dim
+        self._inverse_mapping_dims = inverse_mapping_dims
+        self._activation = activation
+
+        self._decode_block = DenseBlock(
+                self._inverse_mapping_dims,
+                activation=self._activation
+        )
+        self._output = klayers.Dense(self._input_dim)
 
     def call(self, inputs):
         x = self._decode_block(inputs)
         return self._output(x)
 
-
-class ConvEncoder(klayers.Layer):
-
-    def __init__(self):
-        super(ConvEncoder, self).__init__()
-
-
-class ConvDecoder(klayers.Layer):
-
-    def __init__(self):
-        super(ConvDecoder, self).__init__()
+    def get_config(self):
+        config = super(DenseDecoder, self).get_config()
+        config.update({
+            "inverse_mapping_dims": self._inverse_mapping_dims,
+            "input_dim": self._input_dim,
+            "activation": self._activation
+        })
+        return config

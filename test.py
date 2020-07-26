@@ -39,13 +39,13 @@ def mlp():
         .batch(32)
 
     config = {
-        "dense_dims": [32],
+        "dense_dims": [32, 16],
         "dense_activation": "relu",
         "output_dim": 10,
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
-        "epochs": 5
+        "epochs": 2
     }
 
     compiled_model = t.model_init(
@@ -57,11 +57,14 @@ def mlp():
 
     for _ in range(config["epochs"]):
         loss = 0.0
+        step = 0
         for x, y in train_ds:
-            loss, grads = t.grad(compiled_model, x, y)
+            loss_, grads = t.grad(compiled_model, x, y)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
-        print("Epoch loss: {loss}".format(loss=loss))
+            loss += loss_
+            step += 1
+        print("Epoch loss: {loss}".format(loss=loss/float(step)))
 
 
 @smoke_decorator
@@ -89,7 +92,7 @@ def basic_cnn():
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
-        "epochs": 5
+        "epochs": 2
     }
 
     compiled_model = t.model_init(
@@ -138,7 +141,7 @@ def resnet():
         "output_activation": "softmax",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"SparseCategoricalCrossentropy": {}},
-        "epochs": 5
+        "epochs": 2
     }
 
     compiled_model = t.model_init(
@@ -185,7 +188,7 @@ def dense_vae():
         "activation": "relu",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"MeanAbsoluteError": {}},
-        "epochs": 5
+        "epochs": 2
     }
 
     compiled_model = t.model_init(
@@ -197,19 +200,22 @@ def dense_vae():
 
     for _ in range(config["epochs"]):
         loss = 0.0
+        step = 0
         for x, y in train_ds:
-            loss, grads = t.grad(compiled_model, x, x)
+            loss_, grads = t.grad(compiled_model, x, x)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
-        print("Epoch loss: {loss}".format(loss=loss))
+            loss += loss_
+            step += 1
+        print("Epoch loss: {loss}".format(loss=loss/float(step)))
 
 
 if __name__ == "__main__":
 
     tf.keras.backend.set_floatx('float64')
 
-    tests = [dense_vae]
+    tests = ["mlp", "basic_cnn", "resnet", "dense_vae"]
 
     for t in tests:
-        status = "passed!" if t() else "failed!"
-        print("{f} status: {s}".format(f=str(t), s=status))
+        status = "passed!" if eval(t)() else "failed!"
+        print("{f} status: {s}".format(f=t, s=status))
