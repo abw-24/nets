@@ -86,8 +86,9 @@ class BasicCNN(BaseModel):
 
 class ResNet(BaseModel):
     """
-    ResNet CNN. Allows a configurable number of convolutional layers via the CNNBlock,
-    followed by a configurable ResidualBlock.
+    ResNet CNN. Allows a configurable number of initial convolutional layers
+    via the CNNBlock, followed by a configurable ResidualBlock, composed of
+     a set of residual or multi-path residual block convolutional layers.
     """
     def __init__(self, config):
 
@@ -154,6 +155,9 @@ class ResNet(BaseModel):
 
 
 class DenseVAE(BaseModel):
+    """
+    Variational autoencoder with dense embedding connections.
+    """
 
     def __init__(self, config, **kwargs):
 
@@ -179,7 +183,8 @@ class DenseVAE(BaseModel):
     def call(self, inputs, training=False):
         z_mean, z_log_var, z = self._encoder(inputs)
         reconstructed = self._decoder(z)
-        # add kl loss as a zero arg lambda funtion to make it callable
+        # add kl loss as a zero arg lambda function to make it callable.
+        # this penalization is what enforces normality
         kl_loss = lambda: -0.5 * tf.reduce_mean(
             z_log_var - tf.square(z_mean) - tf.exp(z_log_var) + 1
         )
