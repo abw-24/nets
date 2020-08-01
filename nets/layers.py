@@ -374,11 +374,12 @@ class DenseEncoder(klayers.Layer):
 
 class DenseDecoder(klayers.Layer):
 
-    def __init__(self, input_dim, inverse_mapping_dims, activation="relu", **kwargs):
+    def __init__(self, inverse_mapping_dims, input_dim, activation="relu", **kwargs):
+
         super(DenseDecoder, self).__init__(**kwargs)
 
-        self._input_dim = input_dim
         self._inverse_mapping_dims = inverse_mapping_dims
+        self._input_dim = input_dim
         self._activation = activation
 
         self._decode_block = DenseBlock(
