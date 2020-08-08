@@ -325,7 +325,7 @@ class MultiPathResidualBlock(SequentialBlock):
 class VAESampling(klayers.Layer):
     """
     Samples from distribution defined by the latent layer values to
-    generate concrete values from which to decode.
+    generate values from which to decode.
     """
 
     def call(self, inputs):
@@ -335,6 +335,9 @@ class VAESampling(klayers.Layer):
                        tf.shape(z_mean)[1])
         )
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+
+    def get_config(self):
+        return super(VAESampling, self).get_config()
 
 
 class DenseEncoder(klayers.Layer):
@@ -374,11 +377,12 @@ class DenseEncoder(klayers.Layer):
 
 class DenseDecoder(klayers.Layer):
 
-    def __init__(self, input_dim, inverse_mapping_dims, activation="relu", **kwargs):
+    def __init__(self, inverse_mapping_dims, input_dim, activation="relu", **kwargs):
+
         super(DenseDecoder, self).__init__(**kwargs)
 
-        self._input_dim = input_dim
         self._inverse_mapping_dims = inverse_mapping_dims
+        self._input_dim = input_dim
         self._activation = activation
 
         self._decode_block = DenseBlock(

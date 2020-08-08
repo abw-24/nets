@@ -175,8 +175,8 @@ class DenseVAE(BaseModel):
                 activation=self._activation
         )
         self._decoder = DenseDecoder(
-                input_dim=self._input_dim,
                 inverse_mapping_dims=self._encoding_dims[::-1],
+                input_dim=self._input_dim,
                 activation=self._activation
         )
 
@@ -190,3 +190,9 @@ class DenseVAE(BaseModel):
         )
         self.add_loss(kl_loss)
         return reconstructed
+
+    def get_config(self):
+        config = super(DenseVAE, self).get_config()
+        config.update({"config": self._config})
+        return config
+
