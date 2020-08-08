@@ -192,6 +192,7 @@ class DenseVAE(BaseModel):
         return reconstructed
 
     def get_config(self):
-        config = super(ResNet, self).get_config()
+        config = super(DenseVAE, self).get_config()
         config.update({"config": self._config})
         return config
+
