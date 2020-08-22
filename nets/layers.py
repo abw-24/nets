@@ -14,12 +14,12 @@ class SequentialBlock(klayers.Layer):
 
     def __init__(self, **kwargs):
         super(SequentialBlock, self).__init__(**kwargs)
-        self._block_layers = []
+        self._block_layers = {}
 
     def call(self, inputs, training=False):
         x = inputs
-        for lyr in self._block_layers:
-            x = lyr(x, training=training)
+        for i in range(len(self._block_layers)):
+            x = self._block_layers[str(i)](x, training=training)
         return x
 
 
@@ -41,9 +41,9 @@ class DenseBlock(SequentialBlock):
         else:
             self._activation = activation
 
-        self._block_layers = [
-            klayers.Dense(u, a) for u, a in zip(self._dims, self._activation)
-            ]
+        self._block_layers = {
+            str(i): klayers.Dense(v[0], v[1]) for i, v in enumerate(zip(self._dims, self._activation))
+        }
 
     def get_config(self):
         config = super(DenseBlock, self).get_config()
@@ -94,27 +94,34 @@ class ConvBlock(SequentialBlock):
             self._filters = [filters]
         else:
             self._filters = filters
+
+        depth = len(filters)
+
         if isinstance(kernel, int) or isinstance(kernel, tuple):
-            self._kernel = [kernel]*len(filters)
+            self._kernel = [kernel]*depth
         else:
             self._kernel = kernel
         if isinstance(stride, int) or isinstance(stride, tuple):
-            self._stride = [stride]*len(filters)
+            self._stride = [stride]*depth
         else:
             self._stride = stride
         if isinstance(padding, str) or isinstance(padding, tuple):
-            self._padding = [padding]*len(filters)
+            self._padding = [padding]*depth
         else:
             self._padding = padding
 
+        layer_index = 0
         for f, k, s, p in zip(self._filters, self._kernel, self._stride, self._padding):
-            self._block_layers.append(
-                    klayers.Conv2D(f, k, strides=s, padding=p, activation=self._activation)
+            self._block_layers[str(layer_index)] = klayers.Conv2D(
+                    f, k, strides=s, padding=p, activation=self._activation
             )
+            layer_index += 1
             if self._batch_norm_flag:
-                self._block_layers.append(klayers.BatchNormalization())
+                self._block_layers[str(layer_index)] = klayers.BatchNormalization()
+                layer_index += 1
             if self._pool_flag:
-                self._block_layers.append(klayers.MaxPooling2D())
+                self._block_layers[str(layer_index)] = klayers.MaxPooling2D()
+                layer_index += 1
 
     def get_config(self):
         config = super(ConvBlock, self).get_config()
@@ -194,7 +201,7 @@ class MultiPathResidualLayer(klayers.Layer):
 
         self._n_paths = n_paths
         self._conv_activation = activation
-        self._conv_paths = []
+        self._conv_paths = {}
 
         if isinstance(filters, int):
             self._filters = [filters]
@@ -209,7 +216,7 @@ class MultiPathResidualLayer(klayers.Layer):
         # them before the final residual connection
 
         for i in range(self._n_paths):
-            self._conv_paths.append(ConvBlock(
+            self._conv_paths[str(i)] = ConvBlock(
                     filters=[int(f/pow(2, i)) for f in self._filters[:-1]] + [self._filters[-1]],
                     kernel=3,
                     stride=(1,1),
@@ -217,7 +224,7 @@ class MultiPathResidualLayer(klayers.Layer):
                     padding="same",
                     pool=False,
                     batch_norm=True
-            ))
+            )
 
         self._add_op = klayers.Add()
         self._activation_op = klayers.Activation(self._conv_activation)
@@ -225,8 +232,8 @@ class MultiPathResidualLayer(klayers.Layer):
     def call(self, inputs, training=False):
         x = inputs
         path_outputs = []
-        for path in self._conv_paths:
-            path_out = path(x, training=training)
+        for i in range(self._n_paths):
+            path_out = self._conv_paths[str(i)](x, training=training)
             path_outputs.append(path_out)
         merged = self._add_op(path_outputs)
         output = self._add_op([x, merged])
@@ -256,8 +263,6 @@ class ResidualBlock(SequentialBlock):
         self._block_filters = filters
         self._res_activation = activation
 
-        self._block_layers = []
-
         if isinstance(self._block_filters, int):
             self._block_filters = [self._block_filters] * self._block_depth
         else:
@@ -265,9 +270,7 @@ class ResidualBlock(SequentialBlock):
                 self._block_filters = [self._block_filters] * self._block_depth
 
         for i in range(self._block_depth):
-            self._block_layers.append(
-                ResidualLayer(self._block_filters[i], self._res_activation)
-            )
+            self._block_layers[str(i)] = ResidualLayer(self._block_filters[i], self._res_activation)
 
     def get_config(self):
         config = super(ResidualBlock, self).get_config()
@@ -303,12 +306,10 @@ class MultiPathResidualBlock(SequentialBlock):
                 self._block_filters = [self._block_filters] * self._block_depth
 
         for i in range(self._block_depth):
-            self._block_layers.append(
-                MultiPathResidualLayer(
-                        self._n_paths[i],
-                        filters=self._block_filters[i],
-                        activation=self._res_activation
-                )
+            self._block_layers[str(i)] = MultiPathResidualLayer(
+                    self._n_paths[i],
+                    filters=self._block_filters[i],
+                    activation=self._res_activation
             )
 
     def get_config(self):

@@ -20,15 +20,15 @@ class MLP(BaseModel):
         self._activation = self._config.get("dense_activation", "relu")
         self._output_activation = self._config.get("output_activation", "softmax")
 
-        self._model_layers = [
-            DenseBlock(dims=self._dims, activation=self._activation),
-            DenseBlock(dims=[self._output_dim], activation=self._output_activation)
-        ]
+        self._model_layers = {
+            "0": DenseBlock(dims=self._dims, activation=self._activation),
+            "1": DenseBlock(dims=[self._output_dim], activation=self._output_activation)
+        }
 
     def call(self, inputs, training=None):
         x = inputs
-        for lyr in self._model_layers:
-            x = lyr(x, training=training)
+        for i in range(len(self._model_layers)):
+            x = self._model_layers[str(i)](x, training=training)
         return x
 
     def get_config(self):
@@ -58,8 +58,8 @@ class BasicCNN(BaseModel):
         self._output_dim = self._config["output_dim"]
         self._output_activation = self._config.get("output_activation", "softmax")
 
-        self._model_layers = [
-            ConvBlock(
+        self._model_layers = {
+            "0": ConvBlock(
                     self._n_filters,
                     kernel=self._kernel,
                     stride=self._stride,
@@ -67,15 +67,15 @@ class BasicCNN(BaseModel):
                     activation=self._conv_activation,
                     pool=self._pool
             ),
-            Flatten(),
-            DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
-            DenseBlock(dims=[self._output_dim], activation=self._output_activation)
-        ]
+            "1": Flatten(),
+            "2": DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
+            "3": DenseBlock(dims=[self._output_dim], activation=self._output_activation)
+        }
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=None):
         x = inputs
-        for lyr in self._model_layers:
-            x = lyr(x, training=training)
+        for i in range(len(self._model_layers)):
+            x = self._model_layers[str(i)](x, training=training)
         return x
 
     def get_config(self):
@@ -114,21 +114,21 @@ class ResNet(BaseModel):
         self._output_activation = self._config.get("output_activation", "softmax")
 
         if self._n_paths is None:
-            resblock = ResidualBlock(
+            res_block = ResidualBlock(
                     block_depth=self._res_depth,
                     filters=self._res_filters,
                     activation=self._res_activation
             )
         else:
-            resblock = MultiPathResidualBlock(
+            res_block = MultiPathResidualBlock(
                     block_depth=self._res_depth,
                     n_paths=self._n_paths,
                     filters=self._res_filters,
                     activation=self._res_activation
             )
 
-        self._model_layers = [
-            ConvBlock(
+        self._model_layers = {
+            "0": ConvBlock(
                     self._conv_filters,
                     kernel=self._conv_kernel,
                     stride=self._stride,
@@ -136,16 +136,16 @@ class ResNet(BaseModel):
                     activation=self._conv_activation,
                     pool=self._pool
             ),
-            resblock,
-            Flatten(),
-            DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
-            DenseBlock(dims=[self._output_dim], activation=self._output_activation)
-        ]
+            "1": res_block,
+            "2": Flatten(),
+            "3": DenseBlock(dims=self._dense_dims, activation=self._dense_activation),
+            "4": DenseBlock(dims=[self._output_dim], activation=self._output_activation)
+        }
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=None):
         x = inputs
-        for lyr in self._model_layers:
-            x = lyr(x, training=training)
+        for i in range(len(self._model_layers)):
+            x = self._model_layers[str(i)](x, training=training)
         return x
 
     def get_config(self):
@@ -195,4 +195,3 @@ class DenseVAE(BaseModel):
         config = super(DenseVAE, self).get_config()
         config.update({"config": self._config})
         return config
-
