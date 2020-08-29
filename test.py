@@ -25,7 +25,7 @@ def mlp():
     """
     Test mlp on mnist data.
     """
-    import nets.nets as nets
+    import nets.dense as d
     import nets.train as t
 
     # load mnist data, flatten, and normalize to 0-1
@@ -49,7 +49,7 @@ def mlp():
     }
 
     compiled_model = t.model_init(
-            nets.MLP(config),
+            d.MLP(config),
             config["loss"],
             config["optimizer"],
             (None, 784)
@@ -72,7 +72,7 @@ def basic_cnn():
     """
     Test mlp on mnist data.
     """
-    import nets.nets as nets
+    import nets.image as i
     import nets.train as t
 
     # load mnist data, reshape to have channel dim, and normalize to 0-1
@@ -96,7 +96,7 @@ def basic_cnn():
     }
 
     compiled_model = t.model_init(
-            nets.BasicCNN(config),
+            i.CNN(config),
             config["loss"],
             config["optimizer"],
             (None, 28, 28, 1)
@@ -119,7 +119,7 @@ def resnet():
     """
     Test mlp on mnist data.
     """
-    import nets.nets as nets
+    import nets.image as i
     import nets.train as t
 
     # load mnist data, reshape to have channel dim, and normalize to 0-1
@@ -145,7 +145,7 @@ def resnet():
     }
 
     compiled_model = t.model_init(
-            nets.ResNet(config),
+            i.ResNet(config),
             config["loss"],
             config["optimizer"],
             (None, 28, 28, 1)
@@ -168,7 +168,7 @@ def dense_vae():
     """
     Test mlp on mnist data.
     """
-    import nets.nets as nets
+    import nets.dense as d
     import nets.train as t
 
     # load mnist data, flatten, and normalize to 0-1
@@ -192,7 +192,7 @@ def dense_vae():
     }
 
     compiled_model = t.model_init(
-            nets.DenseVAE(config),
+            d.DenseVAE(config),
             config["loss"],
             config["optimizer"],
             (None, 784)
