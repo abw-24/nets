@@ -61,19 +61,25 @@ class DenseVAE(BaseModel):
                 input_dim=self._input_dim,
                 activation=self._activation
         )
+        self._hidden_representation = None
 
     def call(self, inputs, training=False):
-        z_mean, z_log_var, z = self._encoder(inputs)
-        reconstructed = self._decoder(z)
+        z_mean, z_log_var, self._hidden_representation = self._encoder(inputs)
+        reconstructed = self._decoder(self._hidden_representation)
         # add kl loss as a zero arg lambda function to make it callable.
         # this penalization is what enforces normality
-        kl_loss = lambda: -0.5 * tf.reduce_mean(
-            z_log_var - tf.square(z_mean) - tf.exp(z_log_var) + 1
-        )
-        self.add_loss(kl_loss)
+        if training:
+            kl_loss = lambda: -0.5 * tf.reduce_mean(
+                z_log_var - tf.square(z_mean) - tf.exp(z_log_var) + 1
+            )
+            self.add_loss(kl_loss)
         return reconstructed
 
     def get_config(self):
         config = super(DenseVAE, self).get_config()
         config.update({"config": self._config})
         return config
+
+    @property
+    def hidden(self):
+        return self._hidden_representation
