@@ -2,6 +2,8 @@
 import tensorflow as tf
 from tensorflow import keras
 
+import nets.train as train
+
 
 def smoke_decorator(fn):
     """
@@ -25,8 +27,7 @@ def mlp():
     """
     Test mlp on mnist data.
     """
-    import nets.dense as d
-    import nets.train as t
+    import nets.dense as dense
 
     # load mnist data, flatten, and normalize to 0-1
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -48,8 +49,8 @@ def mlp():
         "epochs": 2
     }
 
-    compiled_model = t.model_init(
-            d.MLP(config),
+    compiled_model = train.model_init(
+            dense.MLP(config),
             config["loss"],
             config["optimizer"],
             (None, 784)
@@ -59,7 +60,7 @@ def mlp():
         loss = 0.0
         step = 0
         for x, y in train_ds:
-            loss_, grads = t.grad(compiled_model, x, y)
+            loss_, grads = train.grad(compiled_model, x, y)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
             loss += loss_
@@ -72,8 +73,7 @@ def basic_cnn():
     """
     Test mlp on mnist data.
     """
-    import nets.image as i
-    import nets.train as t
+    import nets.image as img
 
     # load mnist data, reshape to have channel dim, and normalize to 0-1
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -95,8 +95,8 @@ def basic_cnn():
         "epochs": 2
     }
 
-    compiled_model = t.model_init(
-            i.CNN(config),
+    compiled_model = train.model_init(
+            img.CNN(config),
             config["loss"],
             config["optimizer"],
             (None, 28, 28, 1)
@@ -106,7 +106,7 @@ def basic_cnn():
         loss = 0.0
         step = 0
         for x, y in train_ds:
-            loss_, grads = t.grad(compiled_model, x, y)
+            loss_, grads = train.grad(compiled_model, x, y)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
             loss += loss_
@@ -119,8 +119,7 @@ def resnet():
     """
     Test mlp on mnist data.
     """
-    import nets.image as i
-    import nets.train as t
+    import nets.image as img
 
     # load mnist data, reshape to have channel dim, and normalize to 0-1
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -144,8 +143,8 @@ def resnet():
         "epochs": 2
     }
 
-    compiled_model = t.model_init(
-            i.ResNet(config),
+    compiled_model = train.model_init(
+            img.ResNet(config),
             config["loss"],
             config["optimizer"],
             (None, 28, 28, 1)
@@ -155,7 +154,7 @@ def resnet():
         loss = 0.0
         step = 0
         for x, y in train_ds:
-            loss_, grads = t.grad(compiled_model, x, y)
+            loss_, grads = train.grad(compiled_model, x, y)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
             loss += loss_
@@ -168,8 +167,7 @@ def dense_vae():
     """
     Test mlp on mnist data.
     """
-    import nets.dense as d
-    import nets.train as t
+    import nets.dense as dense
 
     # load mnist data, flatten, and normalize to 0-1
     (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -191,8 +189,8 @@ def dense_vae():
         "epochs": 2
     }
 
-    compiled_model = t.model_init(
-            d.DenseVAE(config),
+    compiled_model = train.model_init(
+            dense.DenseVAE(config),
             config["loss"],
             config["optimizer"],
             (None, 784)
@@ -202,7 +200,7 @@ def dense_vae():
         loss = 0.0
         step = 0
         for x, y in train_ds:
-            loss_, grads = t.grad(compiled_model, x, x)
+            loss_, grads = train.grad(compiled_model, x, x)
             updates = zip(grads, compiled_model.trainable_variables)
             compiled_model.optimizer.apply_gradients(updates)
             loss += loss_
@@ -214,7 +212,7 @@ if __name__ == "__main__":
 
     tf.keras.backend.set_floatx('float64')
 
-    tests = ["mlp", "basic_cnn", "resnet", "dense_vae"]
+    tests = ["dense_vae"]
 
     for t in tests:
         status = "passed!" if eval(t)() else "failed!"

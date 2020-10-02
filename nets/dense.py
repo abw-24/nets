@@ -9,9 +9,9 @@ class MLP(BaseModel):
     Fully connected model with a configurable number of hidden layers
     and output units
     """
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
 
-        super(MLP, self).__init__()
+        super(MLP, self).__init__(name="MLP", **kwargs)
 
         self._config = config
         self._dims = self._config["dense_dims"]
@@ -51,12 +51,12 @@ class DenseVAE(BaseModel):
         self._latent_dim = self._config["latent_dim"]
         self._activation = self._config["activation"]
 
-        self._encoder = DenseEncoder(
+        self._encoder = DenseVariationalEncoder(
                 mapping_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
                 activation=self._activation
         )
-        self._decoder = DenseDecoder(
+        self._decoder = DenseVariationalDecoder(
                 inverse_mapping_dims=self._encoding_dims[::-1],
                 input_dim=self._input_dim,
                 activation=self._activation
@@ -83,3 +83,10 @@ class DenseVAE(BaseModel):
     @property
     def hidden(self):
         return self._hidden_representation
+
+
+class DenseDenoisingVAE(BaseModel):
+
+    def __init__(self, config, **kwargs):
+
+        super(DenseDenoisingVAE, self).__init__(name="DDVAE", **kwargs)
