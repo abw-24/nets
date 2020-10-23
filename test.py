@@ -14,7 +14,7 @@ def smoke_decorator(fn):
     def _inner():
         try:
             fn()
-        except BaseException() as e:
+        except Exception as e:
             print(e)
             return False
         else:
@@ -180,13 +180,13 @@ def dense_vae():
         .batch(32)
 
     config = {
-        "input_dim": 784,
         "encoding_dims": [64, 32],
         "latent_dim": 10,
         "activation": "relu",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"MeanAbsoluteError": {}},
-        "epochs": 2
+        "epochs": 2,
+        "sparse_flag": False
     }
 
     compiled_model = train.model_init(

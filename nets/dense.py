@@ -46,10 +46,17 @@ class DenseVAE(BaseModel):
         super(DenseVAE, self).__init__(name="VAE", **kwargs)
 
         self._config = config
-        self._input_dim = self._config["input_dim"]
         self._encoding_dims = self._config["encoding_dims"]
         self._latent_dim = self._config["latent_dim"]
         self._activation = self._config["activation"]
+        self._sparse_flag = self._config["sparse_flag"]
+
+    def build(self, input_shape):
+
+        self._input_layer = tf.keras.layers.InputLayer(
+                input_shape=(input_shape[-1],),
+                sparse=self._sparse_flag
+        )
 
         self._encoder = DenseVariationalEncoder(
                 mapping_dims=self._encoding_dims,
@@ -58,14 +65,14 @@ class DenseVAE(BaseModel):
         )
         self._decoder = DenseVariationalDecoder(
                 inverse_mapping_dims=self._encoding_dims[::-1],
-                input_dim=self._input_dim,
+                input_dim=input_shape[-1],
                 activation=self._activation
         )
-        self._hidden_representation = None
 
     def call(self, inputs, training=False):
-        z_mean, z_log_var, self._hidden_representation = self._encoder(inputs)
-        reconstructed = self._decoder(self._hidden_representation)
+        init_inputs = self._input_layer(inputs)
+        z_mean, z_log_var, hidden = self._encoder(init_inputs)
+        reconstructed = self._decoder(hidden)
         # add kl loss as a zero arg lambda function to make it callable.
         # this penalization is what enforces normality
         if training:
@@ -80,13 +87,6 @@ class DenseVAE(BaseModel):
         config.update({"config": self._config})
         return config
 
-    @property
-    def hidden(self):
-        return self._hidden_representation
-
-
-class DenseDenoisingVAE(BaseModel):
-
-    def __init__(self, config, **kwargs):
-
-        super(DenseDenoisingVAE, self).__init__(name="DDVAE", **kwargs)
+    def encode(self, inputs):
+        z_mean, z_log_var, hidden = self._encoder(inputs)
+        return hidden
