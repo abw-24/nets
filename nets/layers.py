@@ -341,11 +341,11 @@ class VAESampling(klayers.Layer):
         return super(VAESampling, self).get_config()
 
 
-class DenseEncoder(klayers.Layer):
+class DenseVariationalEncoder(klayers.Layer):
 
     def __init__(self, mapping_dims, latent_dim, activation="relu", **kwargs):
 
-        super(DenseEncoder, self).__init__(**kwargs)
+        super(DenseVariationalEncoder, self).__init__(**kwargs)
 
         self._mapping_dims = mapping_dims
         self._latent_dim = latent_dim
@@ -367,7 +367,7 @@ class DenseEncoder(klayers.Layer):
         return z_mean, z_log_var, z
 
     def get_config(self):
-        config = super(DenseEncoder, self).get_config()
+        config = super(DenseVariationalEncoder, self).get_config()
         config.update({
             "mapping_dims": self._mapping_dims,
             "latent_dim": self._latent_dim,
@@ -376,11 +376,11 @@ class DenseEncoder(klayers.Layer):
         return config
 
 
-class DenseDecoder(klayers.Layer):
+class DenseVariationalDecoder(klayers.Layer):
 
     def __init__(self, inverse_mapping_dims, input_dim, activation="relu", **kwargs):
 
-        super(DenseDecoder, self).__init__(**kwargs)
+        super(DenseVariationalDecoder, self).__init__(**kwargs)
 
         self._inverse_mapping_dims = inverse_mapping_dims
         self._input_dim = input_dim
@@ -397,7 +397,7 @@ class DenseDecoder(klayers.Layer):
         return self._output(x)
 
     def get_config(self):
-        config = super(DenseDecoder, self).get_config()
+        config = super(DenseVariationalDecoder, self).get_config()
         config.update({
             "inverse_mapping_dims": self._inverse_mapping_dims,
             "input_dim": self._input_dim,
