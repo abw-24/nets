@@ -45,11 +45,10 @@ class DenseVAE(BaseModel):
 
         super(DenseVAE, self).__init__(name="VAE", **kwargs)
 
-        self._config = config
-        self._encoding_dims = self._config["encoding_dims"]
-        self._latent_dim = self._config["latent_dim"]
-        self._activation = self._config["activation"]
-        self._sparse_flag = self._config["sparse_flag"]
+        self._encoding_dims = config["encoding_dims"]
+        self._latent_dim = config["latent_dim"]
+        self._activation = config["activation"]
+        self._sparse_flag = config["sparse_flag"]
 
     def build(self, input_shape):
 
@@ -84,9 +83,65 @@ class DenseVAE(BaseModel):
 
     def get_config(self):
         config = super(DenseVAE, self).get_config()
-        config.update({"config": self._config})
+        config.update({
+            "encoding_dims": self._encoding_dims,
+            "latent_dim": self._latent_dim,
+            "activation": self._activation,
+            "sparse_flag": self._sparse_flag
+        })
         return config
 
     def encode(self, inputs):
         z_mean, z_log_var, hidden = self._encoder(inputs)
         return hidden
+
+
+class DenseAE(BaseModel):
+    """
+    Classic feedforward autoencoder.
+    """
+
+    def __init__(self, config, **kwargs):
+
+        super(DenseAE, self).__init__(name="VAE", **kwargs)
+
+        self._encoding_dims = config["encoding_dims"]
+        self._latent_dim = config["latent_dim"]
+        self._activation = config["activation"]
+        self._sparse_flag = config["sparse_flag"]
+
+    def build(self, input_shape):
+
+        self._input_layer = tf.keras.layers.InputLayer(
+                input_shape=(input_shape[-1],),
+                sparse=self._sparse_flag
+        )
+
+        self._encoder = DenseEncoder(
+                mapping_dims=self._encoding_dims,
+                latent_dim=self._latent_dim,
+                activation=self._activation
+        )
+        self._decoder = DenseDecoder(
+                inverse_mapping_dims=self._encoding_dims[::-1],
+                input_dim=input_shape[-1],
+                activation=self._activation
+        )
+
+    def call(self, inputs, training=False):
+        init_inputs = self._input_layer(inputs)
+        hidden = self._encoder(init_inputs)
+        return self._decoder(hidden)
+
+    def get_config(self):
+        config = super(DenseAE, self).get_config()
+        config.update({
+            "encoding_dims": self._encoding_dims,
+            "latent_dim": self._latent_dim,
+            "activation": self._activation,
+            "sparse_flag": self._sparse_flag
+        })
+        return config
+
+    def encode(self, inputs):
+        return self._encoder(inputs)

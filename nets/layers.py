@@ -28,9 +28,11 @@ class DenseBlock(SequentialBlock):
     Block of densely connected layers.
     """
 
-    def __init__(self, dims, activation, **kwargs):
+    def __init__(self, dims, activation, regularizer=None, **kwargs):
 
         super(DenseBlock, self).__init__(**kwargs)
+
+        self._regularizer = regularizer
 
         if isinstance(dims, int):
             self._dims = [dims]
@@ -41,15 +43,17 @@ class DenseBlock(SequentialBlock):
         else:
             self._activation = activation
 
+        layer_enum = enumerate(zip(self._dims, self._activation))
         self._block_layers = {
-            str(i): klayers.Dense(v[0], v[1]) for i, v in enumerate(zip(self._dims, self._activation))
+            str(i): klayers.Dense(v[0], v[1], kernel_regularizer=self._regularizer) for i, v in layer_enum
         }
 
     def get_config(self):
         config = super(DenseBlock, self).get_config()
         config.update({
             "dims": self._dims,
-            "activation": self._activation
+            "activation": self._activation,
+            "regularizer": self._regularizer
         })
         return config
 
@@ -398,6 +402,72 @@ class DenseVariationalDecoder(klayers.Layer):
 
     def get_config(self):
         config = super(DenseVariationalDecoder, self).get_config()
+        config.update({
+            "inverse_mapping_dims": self._inverse_mapping_dims,
+            "input_dim": self._input_dim,
+            "activation": self._activation
+        })
+        return config
+
+
+class DenseEncoder(klayers.Layer):
+
+    def __init__(self, mapping_dims, latent_dim, activation="relu", **kwargs):
+
+        super(DenseEncoder, self).__init__(**kwargs)
+
+        self._mapping_dims = mapping_dims
+
+        if isinstance(self._mapping_dims, int):
+            self._mapping_dims = [self._mapping_dims]
+        else:
+            assert hasattr(self._mapping_dims, "__iter__"), \
+                "Expecting either an int or an iterable of ints."
+            self._mapping_dims = list(self._mapping_dims)
+
+        self._latent_dim = latent_dim
+        self._activation = activation
+
+        self._encode_block = DenseBlock(
+                self._mapping_dims + [self._latent_dim],
+                activation=self._activation
+        )
+
+    def call(self, inputs):
+        return self._encode_block(inputs)
+
+    def get_config(self):
+        config = super(DenseEncoder, self).get_config()
+        config.update({
+            "mapping_dims": self._mapping_dims,
+            "latent_dim": self._latent_dim,
+            "activation": self._activation
+        })
+        return config
+
+
+class DenseDecoder(klayers.Layer):
+
+    def __init__(self, inverse_mapping_dims, input_dim, activation="relu", **kwargs):
+
+        super(DenseDecoder, self).__init__(**kwargs)
+
+        self._inverse_mapping_dims = inverse_mapping_dims
+        self._input_dim = input_dim
+        self._activation = activation
+
+        self._decode_block = DenseBlock(
+                self._inverse_mapping_dims,
+                activation=self._activation
+        )
+        self._output = klayers.Dense(self._input_dim)
+
+    def call(self, inputs):
+        x = self._decode_block(inputs)
+        return self._output(x)
+
+    def get_config(self):
+        config = super(DenseDecoder, self).get_config()
         config.update({
             "inverse_mapping_dims": self._inverse_mapping_dims,
             "input_dim": self._input_dim,
