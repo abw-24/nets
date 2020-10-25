@@ -208,11 +208,57 @@ def dense_vae():
         print("Epoch loss: {loss}".format(loss=loss/float(step)))
 
 
+@smoke_decorator
+def dense_ae():
+    """
+    Test mlp on mnist data.
+    """
+    import nets.dense as dense
+
+    # load mnist data, flatten, and normalize to 0-1
+    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+    x_train = x_train.reshape((x_train.shape[0], 784))
+    x_train = x_train / 255.0
+
+    # create a batch feed from the train tensors
+    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)) \
+        .shuffle(10000) \
+        .batch(32)
+
+    config = {
+        "encoding_dims": [64, 32],
+        "latent_dim": 10,
+        "activation": "relu",
+        "optimizer": {"Adam": {"learning_rate": 0.001}},
+        "loss": {"MeanAbsoluteError": {}},
+        "epochs": 2,
+        "sparse_flag": False
+    }
+
+    compiled_model = train.model_init(
+            dense.DenseAE(config),
+            config["loss"],
+            config["optimizer"],
+            (None, 784)
+    )
+
+    for _ in range(config["epochs"]):
+        loss = 0.0
+        step = 0
+        for x, y in train_ds:
+            loss_, grads = train.grad(compiled_model, x, x)
+            updates = zip(grads, compiled_model.trainable_variables)
+            compiled_model.optimizer.apply_gradients(updates)
+            loss += loss_
+            step += 1
+        print("Epoch loss: {loss}".format(loss=loss/float(step)))
+
+
 if __name__ == "__main__":
 
     tf.keras.backend.set_floatx('float64')
 
-    tests = ["dense_vae"]
+    tests = ["dense_ae"]
 
     for t in tests:
         status = "passed!" if eval(t)() else "failed!"
