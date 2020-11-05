@@ -231,6 +231,7 @@ def dense_ae():
         "activation": "relu",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
         "loss": {"MeanAbsoluteError": {}},
+        "activity_regularizer": "l1_l2",
         "epochs": 2,
         "sparse_flag": False
     }

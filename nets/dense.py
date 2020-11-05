@@ -48,7 +48,8 @@ class DenseVAE(BaseModel):
         self._encoding_dims = config["encoding_dims"]
         self._latent_dim = config["latent_dim"]
         self._activation = config["activation"]
-        self._sparse_flag = config["sparse_flag"]
+        self._sparse_flag = config.get("sparse_flag", False)
+        self._regularizer_str = config.get("activity_regularizer", None)
 
     def build(self, input_shape):
 
@@ -60,12 +61,14 @@ class DenseVAE(BaseModel):
         self._encoder = DenseVariationalEncoder(
                 mapping_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
-                activation=self._activation
+                activation=self._activation,
+                activity_regularizer=self._regularizer_str
         )
         self._decoder = DenseVariationalDecoder(
                 inverse_mapping_dims=self._encoding_dims[::-1],
                 input_dim=input_shape[-1],
-                activation=self._activation
+                activation=self._activation,
+                activity_regularizer=self._regularizer_str
         )
 
     def call(self, inputs, training=False):
@@ -103,12 +106,13 @@ class DenseAE(BaseModel):
 
     def __init__(self, config, **kwargs):
 
-        super(DenseAE, self).__init__(name="VAE", **kwargs)
+        super(DenseAE, self).__init__(name="AE", **kwargs)
 
         self._encoding_dims = config["encoding_dims"]
         self._latent_dim = config["latent_dim"]
         self._activation = config["activation"]
-        self._sparse_flag = config["sparse_flag"]
+        self._sparse_flag = config.get("sparse_flag", False)
+        self._regularizer_str = config.get("activity_regularizer", None)
 
     def build(self, input_shape):
 
@@ -120,12 +124,14 @@ class DenseAE(BaseModel):
         self._encoder = DenseEncoder(
                 mapping_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
-                activation=self._activation
+                activation=self._activation,
+                activity_regularizer=self._regularizer_str
         )
         self._decoder = DenseDecoder(
                 inverse_mapping_dims=self._encoding_dims[::-1],
                 input_dim=input_shape[-1],
-                activation=self._activation
+                activation=self._activation,
+                activity_regularizer=self._regularizer_str
         )
 
     def call(self, inputs, training=False):
