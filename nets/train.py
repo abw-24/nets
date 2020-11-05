@@ -21,6 +21,7 @@ def model_init(model, loss, optimizer, input_dim):
     return model
 
 
+
 @tf.function
 def grad(model, x, y):
     """
