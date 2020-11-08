@@ -2,6 +2,7 @@
 from tensorflow.keras import Model as BaseModel
 
 from nets.layers import *
+from nets.utils import get_tf
 
 
 class MLP(BaseModel):
@@ -18,9 +19,16 @@ class MLP(BaseModel):
         self._output_dim = self._config["output_dim"]
         self._activation = self._config.get("dense_activation", "relu")
         self._output_activation = self._config.get("output_activation", "softmax")
+        self._k_regularizer = self._config.get("kernel_regularizer", None)
+        self._a_regularizer = self._config.get("activity_regularizer", None)
 
         self._model_layers = {
-            "0": DenseBlock(dims=self._dims, activation=self._activation),
+            "0": DenseBlock(
+                    dims=self._dims,
+                    activation=self._activation,
+                    kernel_regularizer=get_tf(tf.keras.regularizers, self._k_regularizer),
+                    activity_regularizer=get_tf(tf.keras.regularizers, self._a_regularizer)
+            ),
             "1": DenseBlock(dims=[self._output_dim], activation=self._output_activation)
         }
 
@@ -49,7 +57,7 @@ class DenseVAE(BaseModel):
         self._latent_dim = config["latent_dim"]
         self._activation = config["activation"]
         self._sparse_flag = config.get("sparse_flag", False)
-        self._regularizer_str = config.get("activity_regularizer", None)
+        self._a_regularizer = config.get("activity_regularizer", None)
 
     def build(self, input_shape):
 
@@ -62,13 +70,13 @@ class DenseVAE(BaseModel):
                 mapping_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
                 activation=self._activation,
-                activity_regularizer=self._regularizer_str
+                activity_regularizer=get_tf(tf.keras.regularizers, self._a_regularizer)
         )
         self._decoder = DenseVariationalDecoder(
                 inverse_mapping_dims=self._encoding_dims[::-1],
                 input_dim=input_shape[-1],
                 activation=self._activation,
-                activity_regularizer=self._regularizer_str
+                activity_regularizer=get_tf(tf.keras.regularizers, self._a_regularizer)
         )
 
     def call(self, inputs, training=False):
@@ -112,7 +120,7 @@ class DenseAE(BaseModel):
         self._latent_dim = config["latent_dim"]
         self._activation = config["activation"]
         self._sparse_flag = config.get("sparse_flag", False)
-        self._regularizer_str = config.get("activity_regularizer", None)
+        self._a_regularizer = config.get("activity_regularizer", None)
 
     def build(self, input_shape):
 
@@ -125,13 +133,13 @@ class DenseAE(BaseModel):
                 mapping_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
                 activation=self._activation,
-                activity_regularizer=self._regularizer_str
+                activity_regularizer=get_tf(tf.keras.regularizers, self._a_regularizer)
         )
         self._decoder = DenseDecoder(
                 inverse_mapping_dims=self._encoding_dims[::-1],
                 input_dim=input_shape[-1],
                 activation=self._activation,
-                activity_regularizer=self._regularizer_str
+                activity_regularizer=get_tf(tf.keras.regularizers, self._a_regularizer)
         )
 
     def call(self, inputs, training=False):
