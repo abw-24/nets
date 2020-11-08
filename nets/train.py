@@ -13,15 +13,37 @@ def model_init(model, loss, optimizer, input_dim):
     :param input_dim: Input dimension
     :return: Built and compiled nets tf.keras model
     """
+
+    if loss is not None:
+        if isinstance(loss, dict):
+            loss_obj = get_tf(tf.keras.losses, loss)
+        elif isinstance(loss, tf.keras.losses.Loss):
+            loss_obj = loss
+        else:
+            raise ValueError("Loss must be either a dictionary or tf loss instance.")
+    else:
+        loss_obj = loss
+
+    if optimizer is not None:
+        if isinstance(optimizer, dict):
+            optimizer_obj = get_tf(tf.keras.optimizers, optimizer)
+        elif isinstance(optimizer, tf.keras.optimizers.Optimizer):
+            optimizer_obj = optimizer
+        else:
+            raise ValueError("Optimizer must be either a dictionary or tf optimizer instance.")
+    else:
+        return None
+
     model.build(input_dim)
     model.compile(
-            optimizer=get_tf(tf.keras.optimizers, optimizer),
-            loss=get_tf(tf.keras.losses, loss)
+            optimizer=optimizer_obj,
+            loss=loss_obj
     )
+
     return model
 
 
-
+#TODO: specify a generic signature to cut down on retracing
 @tf.function
 def grad(model, x, y):
     """
