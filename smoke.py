@@ -97,7 +97,6 @@ def vae():
 
 if __name__ == "__main__":
 
-    tf.keras.backend.set_floatx('float64')
     import sys
 
     for model in sys.argv[1:]:

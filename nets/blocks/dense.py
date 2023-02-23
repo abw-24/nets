@@ -35,7 +35,7 @@ class DenseSequentialBlockFactory(object):
         layers = []
 
         if input_shape is not None:
-            layers.append(tf.keras.layers.InputLayer(input_shape=input_shape))
+            layers.append(tf.keras.layers.InputLayer(input_shape))
 
         for h, a, in zip(*(hidden, activation)):
             layers.append(

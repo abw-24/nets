@@ -40,7 +40,7 @@ class MLP(BaseModel):
         self._forward = DenseSequentialBlockFactory.apply(
             hidden=self._hidden_dims,
             activation=self._activation,
-            input_shape=tf_shape_to_list(input_shape),
+            input_shape=input_shape,
             kernel_regularizer=self._kernel_regularizer,
             activity_regularizer=self._activity_regularizer
         )
