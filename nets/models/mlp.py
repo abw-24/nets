@@ -5,52 +5,53 @@ MLP.
 
 import tensorflow as tf
 
-from nets.blocks.dense import DenseSequentialBlockFactory
+from nets.layers.dense import DenseBlock
 from nets.models.base import BaseModel
-from nets.utils import tf_shape_to_list
 
 
 @tf.keras.utils.register_keras_serializable("nets")
 class MLP(BaseModel):
 
-    def __init__(self, hidden_dims, output_dim, input_dim=None, activation="relu",
+    def __init__(self, hidden_dims, output_shape, input_dim=None, activation="relu",
                  output_activation="softmax", kernel_regularizer=None,
                  activity_regularizer=None, name="MLP", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
         self._hidden_dims = hidden_dims
-        self._output_dim = output_dim
-        self._input_dim = input_dim
+        self._output_dim = output_shape
+        self._input_shape = input_dim
         self._activation = activation
         self._output_activation = output_activation
         self._kernel_regularizer = kernel_regularizer
         self._activity_regularizer = activity_regularizer
 
-        if self._input_dim is not None:
-            self.build(input_shape=self._input_dim)
+        self._input_layer = None
 
-    def build(self, input_shape):
-        """
-        Build model graph.
+        if self._input_shape is not None:
+            self.build(self._input_shape)
 
-        :param input_shape: Shape of input tensor (tuple)
-        """
-        # Factory creates a tf.keras.Sequential model
-        self._forward = DenseSequentialBlockFactory.apply(
+        self._dense_block = DenseBlock(
             hidden=self._hidden_dims,
             activation=self._activation,
-            input_shape=input_shape,
             kernel_regularizer=self._kernel_regularizer,
             activity_regularizer=self._activity_regularizer
         )
-        # Add the output layer on the end
-        self._forward.add(
-                tf.keras.layers.Dense(
-                        units=self._output_dim,
-                        activation=self._output_activation
-                )
+        self._output_layer = tf.keras.layers.Dense(
+                self._output_dim,
+                activation=self._output_activation
         )
+
+    def build(self, input_shape):
+        """
+
+        :param input_shape:
+        :return:
+        """
+        self._input_layer = tf.keras.layers.InputLayer(
+                input_shape=(input_shape[-1],)
+        )
+        super().build(input_shape)
 
     def train_step(self, data):
         """
@@ -64,30 +65,34 @@ class MLP(BaseModel):
         x, y = data
         # Use the graph for the forward pass and compute the compiled loss
         with tf.GradientTape() as tape:
-            y_hat = self._forward(x, training=True)
+            y_hat = self._output_layer(self._dense_block(self._input_layer(x)))
             loss = self.compiled_loss(y, y_hat)
         # Compute gradients
-        gradients = tape.gradient(loss, self._forward.trainable_variables)
+        gradients = tape.gradient(loss, self._dense_block.trainable_variables)
         # Apply gradients
         self.optimizer.apply_gradients(
-                zip(gradients, self._forward.trainable_variables)
+                zip(gradients, self._dense_block.trainable_variables)
         )
         # Update the compiled metrics
         self.compiled_metrics.update_state(y, y_hat)
         return {m.name: m.result() for m in self.metrics}
 
     def call(self, inputs):
-        return self._forward(inputs)
+        return self._output_layer(self._dense_block(self._input_layer(inputs)))
 
     def get_config(self):
         config = super(MLP, self).get_config()
         config.update({
             "hidden_dims": self._hidden_dims,
             "output_dim": self._output_dim,
-            "input_dim": self._self._input_dim,
+            "input_dim": self._input_dim,
             "activation": self._activation,
             "output_activation": self._output_activation,
             "kernel_regularizer": self._kernel_regularizer,
             "activity_regularizer": self._activity_regularizer
         })
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)

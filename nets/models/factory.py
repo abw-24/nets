@@ -22,7 +22,7 @@ class MLPFactory(object):
 
         return MLP(
                 hidden_dims=hidden_dims,
-                output_dim=output_dim,
+                output_shape=output_dim,
                 input_dim=input_dim,
                 activation=activation,
                 output_activation=output_activation,
@@ -38,7 +38,7 @@ class VAEFactory(object):
 
         encoding_dims = config.get("encoding_dims")
         latent_dim = config.get("latent_dim")
-        input_dim = config.get("input_dim", None)
+        input_dim = config.get("input_shape", None)
         activation = config.get("activation", "relu")
         activity_regularizer = config.get("activity_regularizer", None)
         reconstruction_activation = config.get("reconstruction_activation", None)
@@ -47,7 +47,7 @@ class VAEFactory(object):
         return VAE(
             encoding_dims=encoding_dims,
             latent_dim=latent_dim,
-            input_dim=input_dim,
+            input_shape=input_dim,
             activation=activation,
             activity_regularizer=activity_regularizer,
             reconstruction_activation=reconstruction_activation,
