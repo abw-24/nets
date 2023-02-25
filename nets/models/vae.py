@@ -5,10 +5,9 @@ VAE
 
 import tensorflow as tf
 
-from nets.blocks.dense import DenseSequentialBlockFactory
-from nets.layers.dense import DenseGaussianVariationalEncoder
+from nets.layers.dense import DenseBlock, DenseGaussianVariationalEncoder
+
 from nets.models.base import BaseModel
-from nets.utils import tf_shape_to_list
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -17,7 +16,7 @@ class VAE(BaseModel):
     Variational autoencoder with dense encoding/decoding layers.
     """
 
-    def __init__(self, encoding_dims, latent_dim, input_dim=None,
+    def __init__(self, encoding_dims, latent_dim, input_shape=None,
                  activation="relu", activity_regularizer=None,
                  reconstruction_activation=None, sparse_flag=False,
                  name="VAE", **kwargs):
@@ -26,14 +25,11 @@ class VAE(BaseModel):
 
         self._encoding_dims = encoding_dims
         self._latent_dim = latent_dim
-        self._input_dim = input_dim
+        self._input_shape = input_shape
         self._activation = activation
         self._activity_regularizer = activity_regularizer
         self._reconstruction_activation = reconstruction_activation
         self._sparse_flag = sparse_flag
-
-        if self._input_dim is not None:
-            self.build(input_shape=self._input_dim)
 
         self._total_loss_tracker = tf.keras.metrics.Mean(
                 name="total_loss"
@@ -51,35 +47,44 @@ class VAE(BaseModel):
             self._discrepancy_loss_tracker
         ]
 
-    def build(self, input_shape):
-        """
-        Build model graph.
+        # Input layer and decode blocks can only be defined now if we
+        # received an input_shape. Otherwise deferred to a .build()
+        # call by the client.
+        self._input_layer = None
+        self._decode_block = None
+        self._output_layer = None
+        self._input_dim = None
+        if self._input_shape is not None:
+            self.build(self._input_shape)
 
-        :param input_shape: Dimension of input tensor (not including batch dim)
-        """
-
-        # Encoder model with two dense output heads defined above
+        # Encoding layer
         self._encoder = DenseGaussianVariationalEncoder(
             encoding_dims=self._encoding_dims,
             latent_dim=self._latent_dim,
             activation=self._activation,
-            activity_regularizer=self._activity_regularizer,
-            sparse_flag=self._sparse_flag
-        )
-        self._encoder.build(input_shape=input_shape)
-        self._decoder = DenseSequentialBlockFactory.apply(
-            hidden =self._encoding_dims[::-1],
-            input_shape=(self._latent_dim,),
-            activation=self._activation,
             activity_regularizer=self._activity_regularizer
         )
-        # Add output layer to reconstruct input onto decoder block
-        self._decoder.add(
-                tf.keras.layers.Dense(
-                        units=tf_shape_to_list(input_shape)[-1],
-                        activation=self._reconstruction_activation
-                )
+
+    def build(self, input_shape):
+        """
+        Build portion of model graph that depends on the input shape.
+
+        :param input_shape: Dimension of input tensor (not including batch dim)
+        """
+        self._input_layer = tf.keras.layers.InputLayer(
+                input_shape=(input_shape[-1],)
         )
+        self._decode_block = DenseBlock(
+                hidden=self._encoding_dims,
+                activation=self._activation,
+                activity_regularizer=self._activity_regularizer
+        )
+        self._output_layer = tf.keras.layers.Dense(
+                units=input_shape[-1], activation=self._reconstruction_activation
+        )
+        self._input_dim = tf.constant(input_shape[-1])
+
+        super().build(input_shape)
 
     def train_step(self, data):
         """
@@ -88,11 +93,15 @@ class VAE(BaseModel):
         :return:
         """
 
+        x, y = data
         with tf.GradientTape() as tape:
 
-            z_mean, z_log_var, z = self._encoder(data)
-            reconstruction = self._decoder(z)
-            reconstruction_loss = self.compiled_loss(data, reconstruction)
+            z_mean, z_log_var, z = self._encoder(self._input_layer(x))
+            reconstruction = self._output_layer(self._decode_block(z))
+
+            reconstruction_loss = self.compiled_loss(
+                    tf.reshape(x, (-1, self._input_dim)), reconstruction
+            )
             discrepancy_loss = -0.5 * (
                 1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
             )
@@ -114,18 +123,31 @@ class VAE(BaseModel):
         :param inputs:
         :return:
         """
-        _, _, latent = self._encoder(inputs)
+        _, _, latent = self._encoder(self._input_layer(inputs))
         return latent
+
+    def call(self, inputs, training=False):
+        """
+        Return sampled latent values.
+        :param inputs:
+        :return:
+        """
+        _, _, latent = self._encoder(self._input_layer(inputs))
+        return self._output_layer(self._decode_block(latent))
 
     def get_config(self):
         config = super(VAE, self).get_config()
         config.update({
             "encoding_dims": self._encoding_dims,
             "latent_dim": self._latent_dim,
-            "input_dim": self._input_dim,
+            "input_dim": self._input_shape,
             "activation": self._activation,
             "reconstruction_activation": self._reconstruction_activation,
             "activity_regularizer": self._activity_regularizer,
             "sparse_flag": self._sparse_flag
         })
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)

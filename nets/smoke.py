@@ -37,7 +37,7 @@ def mlp():
     }
 
     model = MLPFactory.apply(config)
-    model.build(input_shape=(784,))
+    model.build(input_shape=(None, 784))
     model.compile(
             loss=get_obj(tf.keras.losses, config["loss"]),
             optimizer=get_obj(tf.keras.optimizers, config["optimizer"])
@@ -64,30 +64,30 @@ def vae():
     x_train = x_train / 255.0
 
     # create a batch feed from the train tensors
-    train_ds = tf.data.Dataset.from_tensor_slices(x_train) \
+    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)) \
         .shuffle(10000) \
         .batch(32)
 
     config = {
-        "encoding_dims": [64],
-        "latent_dim": 10,
+        "encoding_dims": [8],
+        "latent_dim": 4,
         "activation": "relu",
         "reconstruction_activation": "sigmoid",
         "optimizer": {"Adam": {"learning_rate": 0.001}},
-        "loss": {"SparseCategoricalCrossentropy": {}},
+        "loss": {"MeanSquaredError": {}},
         "epochs": 2
     }
 
     model = VAEFactory.apply(config)
-    model.build(input_shape=(784,))
+    model.build(input_shape=(None, 784))
     model.compile(
             loss=get_obj(tf.keras.losses, config["loss"]),
             optimizer=get_obj(tf.keras.optimizers, config["optimizer"])
     )
 
     for _ in range(config["epochs"]):
-        for x in train_ds:
-            model.train_on_batch(x)
+        for x, y in train_ds:
+            model.train_on_batch(x, y)
 
         print("{model} epoch metrics: {metrics}".format(
                 model=model.name,
