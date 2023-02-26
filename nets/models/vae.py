@@ -46,16 +46,6 @@ class VAE(BaseModel):
             self._discrepancy_loss_tracker
         ]
 
-        # Input layer and decode blocks can only be defined now if we
-        # received an input_shape. Otherwise deferred to a .build()
-        # call by the client.
-        self._input_layer = None
-        self._decode_block = None
-        self._output_layer = None
-        self._input_dim = None
-        if self._input_shape is not None:
-            self.build(self._input_shape)
-
         # Encoding layer
         self._encoder = DenseGaussianVariationalEncoder(
             encoding_dims=self._encoding_dims,
@@ -63,6 +53,17 @@ class VAE(BaseModel):
             activation=self._activation,
             activity_regularizer=self._activity_regularizer
         )
+
+        # Input layer and decode blocks can only be defined now if we
+        # received an input_shape. Otherwise deferred to a .build()
+        # call by the client.
+        self._input_layer = None
+        self._decode_block = None
+        self._output_layer = None
+        self._input_dim = None
+
+        if self._input_shape is not None:
+            self.build(self._input_shape)
 
     def build(self, input_shape):
         """
@@ -129,7 +130,7 @@ class VAE(BaseModel):
 
     def call(self, inputs, training=False):
         """
-        Return sampled latent values.
+        Return reconstructed inputs.
         :param inputs:
         :return:
         """

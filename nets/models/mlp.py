@@ -26,21 +26,21 @@ class MLP(BaseModel):
         self._kernel_regularizer = kernel_regularizer
         self._activity_regularizer = activity_regularizer
 
-        self._input_layer = None
-
-        if self._input_shape is not None:
-            self.build(self._input_shape)
-
         self._dense_block = DenseBlock(
             hidden=self._hidden_dims,
             activation=self._activation,
             kernel_regularizer=self._kernel_regularizer,
             activity_regularizer=self._activity_regularizer
         )
+
         self._output_layer = tf.keras.layers.Dense(
                 self._output_dim,
                 activation=self._output_activation
         )
+
+        self._input_layer = None
+        if self._input_shape is not None:
+            self.build(self._input_shape)
 
     def build(self, input_shape):
         """

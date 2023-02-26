@@ -17,7 +17,7 @@ class TestVAE(unittest.TestCase):
         """
         # Load mnist data, flatten, and normalize to 0-1
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-        x_train = x_train.reshape((x_train.shape[0], 784))
+        x_train = x_train.reshape((-1, 784))
         x_train = x_train / 255.0
 
         # Create a batch feed from the train tensors
@@ -26,7 +26,7 @@ class TestVAE(unittest.TestCase):
             .batch(32)
 
         # Keep the test xs as well
-        cls._test_x = x_test
+        cls._x_test = x_test.reshape(-1, 784)
 
     @classmethod
     def tearDownClass(cls):
@@ -35,7 +35,7 @@ class TestVAE(unittest.TestCase):
         :return:
         """
         del cls._train_ds
-        del cls._test_x
+        del cls._x_test
 
     def setUp(self):
         """
@@ -48,7 +48,7 @@ class TestVAE(unittest.TestCase):
         self._reconstruction_activation = "sigmoid"
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
         self._loss = {"MeanSquaredError": {}}
-        self._epochs = 2
+        self._epochs = 1
 
     def _generate_default_compiled_model(self):
         """
@@ -85,7 +85,6 @@ class TestVAE(unittest.TestCase):
 
         assert success, msg
 
-    @unittest.skip
     def test_build_no_build(self):
         """
         Test that model creation works by specifying input shape in the model
@@ -127,7 +126,6 @@ class TestVAE(unittest.TestCase):
                 callbacks=[TrainSanityCallback()]
         )
 
-    @unittest.skip
     def test_train_complex(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
@@ -135,7 +133,7 @@ class TestVAE(unittest.TestCase):
         Assertion is done directly in TrainSanityCallback.
         :return:
         """
-        optimizer = {"RMSProp": {"learning_rate": 0.001}}
+        optimizer = {"RMSprop": {"learning_rate": 0.001}}
         loss = {"MeanAbsoluteError": {}}
         activity_regularizer = {"L2": {}}
         encoding_dims = [64, 32, 16]
@@ -158,7 +156,6 @@ class TestVAE(unittest.TestCase):
                 callbacks=[TrainSanityCallback()]
         )
 
-    @unittest.skip
     def test_predict(self):
         """
         Test that prediction works and returns something.
@@ -171,7 +168,7 @@ class TestVAE(unittest.TestCase):
                 epochs=self._epochs,
                 callbacks=[TrainSanityCallback()]
         )
-        predictions = model.predict(self._test_x)
+        predictions = model.predict(self._x_test)
 
         assert isinstance(predictions, np.ndarray)\
                or isinstance(predictions, tf.Tensor)
