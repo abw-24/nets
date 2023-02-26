@@ -12,15 +12,15 @@ from nets.models.base import BaseModel
 @tf.keras.utils.register_keras_serializable("nets")
 class MLP(BaseModel):
 
-    def __init__(self, hidden_dims, output_shape, input_dim=None, activation="relu",
+    def __init__(self, hidden_dims, output_dim, input_shape=None, activation="relu",
                  output_activation="softmax", kernel_regularizer=None,
                  activity_regularizer=None, name="MLP", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
         self._hidden_dims = hidden_dims
-        self._output_dim = output_shape
-        self._input_shape = input_dim
+        self._output_dim = output_dim
+        self._input_shape = input_shape
         self._activation = activation
         self._output_activation = output_activation
         self._kernel_regularizer = kernel_regularizer
