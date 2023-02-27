@@ -6,7 +6,6 @@ VAE
 import tensorflow as tf
 
 from nets.layers.dense import DenseBlock, DenseGaussianVariationalEncoder
-
 from nets.models.base import BaseModel
 
 
@@ -21,7 +20,7 @@ class VAE(BaseModel):
                  reconstruction_activation=None, sparse_flag=False,
                  name="VAE", **kwargs):
 
-        super(VAE, self).__init__(name=name,  **kwargs)
+        super().__init__(name=name,  **kwargs)
 
         self._encoding_dims = encoding_dims
         self._latent_dim = latent_dim
@@ -31,8 +30,8 @@ class VAE(BaseModel):
         self._reconstruction_activation = reconstruction_activation
         self._sparse_flag = sparse_flag
 
-        self._total_loss_tracker = tf.keras.metrics.Mean(
-                name="total_loss"
+        self._loss_tracker = tf.keras.metrics.Mean(
+                name="loss"
         )
         self._reconstruction_loss_tracker = tf.keras.metrics.Mean(
             name="reconstruction_loss"
@@ -42,20 +41,10 @@ class VAE(BaseModel):
         )
 
         self._tracked_metrics = [
-            self._total_loss_tracker,
+            self._loss_tracker,
             self._reconstruction_loss_tracker,
             self._discrepancy_loss_tracker
         ]
-
-        # Input layer and decode blocks can only be defined now if we
-        # received an input_shape. Otherwise deferred to a .build()
-        # call by the client.
-        self._input_layer = None
-        self._decode_block = None
-        self._output_layer = None
-        self._input_dim = None
-        if self._input_shape is not None:
-            self.build(self._input_shape)
 
         # Encoding layer
         self._encoder = DenseGaussianVariationalEncoder(
@@ -65,9 +54,21 @@ class VAE(BaseModel):
             activity_regularizer=self._activity_regularizer
         )
 
+        # Input layer and decode blocks can only be defined now if we
+        # received an input_shape. Otherwise deferred to a .build()
+        # call by the client.
+        self._input_layer = None
+        self._decode_block = None
+        self._output_layer = None
+        self._input_dim = None
+
+        if self._input_shape is not None:
+            self.build(self._input_shape)
+
     def build(self, input_shape):
         """
         Build portion of model graph that depends on the input shape.
+        Also make a call to the parent's build method.
 
         :param input_shape: Dimension of input tensor (not including batch dim)
         """
@@ -82,6 +83,7 @@ class VAE(BaseModel):
         self._output_layer = tf.keras.layers.Dense(
                 units=input_shape[-1], activation=self._reconstruction_activation
         )
+        # Cast the input layer units as a tf.constant
         self._input_dim = tf.constant(input_shape[-1])
 
         super().build(input_shape)
@@ -111,7 +113,7 @@ class VAE(BaseModel):
         gradients = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_weights))
 
-        self._total_loss_tracker.update_state(total_loss)
+        self._loss_tracker.update_state(total_loss)
         self._reconstruction_loss_tracker.update_state(reconstruction_loss)
         self._discrepancy_loss_tracker.update_state(discrepancy_loss)
 
@@ -128,7 +130,7 @@ class VAE(BaseModel):
 
     def call(self, inputs, training=False):
         """
-        Return sampled latent values.
+        Return reconstructed inputs.
         :param inputs:
         :return:
         """
