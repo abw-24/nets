@@ -71,7 +71,7 @@ class TestVAE(unittest.TestCase):
 
     def test_build_basic(self):
         """
-        Test that basic model creation works.
+        Test that default model creation works.
         :return:
         """
         try:
@@ -87,8 +87,8 @@ class TestVAE(unittest.TestCase):
 
     def test_build_no_build(self):
         """
-        Test that model creation works by specifying input shape in the model
-        parameters as opposed to later invoking .build() manually
+        Test that model creation works when specifying the input shape in the
+         model constructor (triggering a call of build on construction).
         :return:
         """
         try:
@@ -129,7 +129,7 @@ class TestVAE(unittest.TestCase):
     def test_train_complex(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
-        for amore complex models with different compiled loss and optimizers.
+        for a more complex model with a different compiled loss and optimizer.
         Assertion is done directly in TrainSanityCallback.
         :return:
         """
@@ -158,7 +158,7 @@ class TestVAE(unittest.TestCase):
 
     def test_predict(self):
         """
-        Test that prediction works and returns something.
+        Test that prediction works and returns the right type.
         :return:
         """
 

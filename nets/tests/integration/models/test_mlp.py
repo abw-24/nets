@@ -87,7 +87,7 @@ class TestMLP(unittest.TestCase):
 
     def test_build_no_build(self):
         """
-        Test that model creation works by specifying input shape in the model
+        Test that model creation works when specifying input shape in the model
         parameters as opposed to later invoking .build() manually
         :return:
         """
@@ -130,7 +130,7 @@ class TestMLP(unittest.TestCase):
     def test_train_complex(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
-        for a more complex model with different compiled loss and optimizers.
+        for a more complex model with a different compiled loss and optimizer.
         Assertion is done directly in TrainSanityCallback.
         :return:
         """
