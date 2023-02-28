@@ -1,6 +1,4 @@
 
-import tensorflow as tf
-
 
 def get_obj(module, obj_dict=None):
     """
@@ -23,15 +21,3 @@ def get_obj(module, obj_dict=None):
     else:
         obj, kwargs = list(obj_dict.items())[0]
         return getattr(module, obj)(**kwargs)
-
-
-def tf_shape_to_list(val):
-    """
-
-    :param val:
-    :return:
-    """
-    if isinstance(val, tf.TensorShape):
-        return val.as_list()
-    else:
-        return val

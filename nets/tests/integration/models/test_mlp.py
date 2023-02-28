@@ -5,7 +5,7 @@ import numpy as np
 
 from nets.models.mlp import MLP
 from nets.utils import get_obj
-from nets.tests.utils import TrainSanityCallback
+from nets.tests.utils import *
 
 
 class TestMLP(unittest.TestCase):
@@ -69,48 +69,32 @@ class TestMLP(unittest.TestCase):
         )
         return model
 
+    @try_except_assertion_decorator
     def test_build_basic(self):
         """
         Test that basic model creation works with the default model
         :return:
         """
-        try:
-            model = self._generate_default_compiled_model()
-        except Exception as e:
-            success = False
-            msg = e
-        else:
-            success = True
-            msg = "Success!"
+        _ = self._generate_default_compiled_model()
 
-        assert success, msg
-
+    @try_except_assertion_decorator
     def test_build_no_build(self):
         """
         Test that model creation works when specifying input shape in the model
         parameters as opposed to later invoking .build() manually
         :return:
         """
-        try:
-            model = MLP(
-                input_shape=self._input_shape,
-                hidden_dims=self._hidden_dims,
-                activation=self._activation,
-                output_dim=self._output_dim,
-                output_activation=self._output_activation
-            )
-            model.compile(
-                optimizer=get_obj(tf.keras.optimizers, self._optimizer),
-                loss=get_obj(tf.keras.losses, self._loss)
-            )
-        except Exception as e:
-            success = False
-            msg = e
-        else:
-            success = True
-            msg = "Success!"
-
-        assert success, msg
+        model = MLP(
+            input_shape=self._input_shape,
+            hidden_dims=self._hidden_dims,
+            activation=self._activation,
+            output_dim=self._output_dim,
+            output_activation=self._output_activation
+        )
+        model.compile(
+            optimizer=get_obj(tf.keras.optimizers, self._optimizer),
+            loss=get_obj(tf.keras.losses, self._loss)
+        )
 
     def test_train_basic(self):
         """
@@ -119,12 +103,11 @@ class TestMLP(unittest.TestCase):
         TrainSanityCallback.
         :return:
         """
-
         model = self._generate_default_compiled_model()
         model.fit(
                 self._train_ds,
                 epochs=self._epochs,
-                callbacks=[TrainSanityCallback()]
+                callbacks=[TrainSanityAssertionCallback()]
         )
 
     def test_train_complex(self):
@@ -154,7 +137,7 @@ class TestMLP(unittest.TestCase):
         model.fit(
                 self._train_ds,
                 epochs=self._epochs,
-                callbacks=[TrainSanityCallback()]
+                callbacks=[TrainSanityAssertionCallback()]
         )
 
     def test_predict(self):
@@ -166,7 +149,7 @@ class TestMLP(unittest.TestCase):
         model.fit(
                 self._train_ds,
                 epochs=self._epochs,
-                callbacks=[TrainSanityCallback()]
+                callbacks=[TrainSanityAssertionCallback()]
         )
         predictions = model.predict(self._x_test)
 
