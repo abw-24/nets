@@ -5,7 +5,7 @@ import numpy as np
 
 from nets.models.vae import VAE
 from nets.utils import get_obj
-from nets.tests.utils import TrainSanityCallback
+from nets.tests.utils import *
 
 
 class TestVAE(unittest.TestCase):
@@ -69,48 +69,32 @@ class TestVAE(unittest.TestCase):
         )
         return model
 
+    @try_except_assertion_decorator
     def test_build_basic(self):
         """
         Test that default model creation works.
         :return:
         """
-        try:
-            model = self._generate_default_compiled_model()
-        except Exception as e:
-            success = False
-            msg = e
-        else:
-            success = True
-            msg = "Success!"
+        _ = self._generate_default_compiled_model()
 
-        assert success, msg
-
+    @try_except_assertion_decorator
     def test_build_no_build(self):
         """
         Test that model creation works when specifying the input shape in the
          model constructor (triggering a call of build on construction).
         :return:
         """
-        try:
-            model = VAE(
+        model = VAE(
                 input_shape=self._input_shape,
                 encoding_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
                 activation=self._activation,
                 reconstruction_activation=self._reconstruction_activation
             )
-            model.compile(
-                optimizer=get_obj(tf.keras.optimizers, self._optimizer),
-                loss=get_obj(tf.keras.losses, self._loss)
-            )
-        except Exception as e:
-            success = False
-            msg = e
-        else:
-            success = True
-            msg = "Success!"
-
-        assert success, msg
+        model.compile(
+            optimizer=get_obj(tf.keras.optimizers, self._optimizer),
+            loss=get_obj(tf.keras.losses, self._loss)
+        )
 
     def test_train_basic(self):
         """
@@ -123,7 +107,7 @@ class TestVAE(unittest.TestCase):
         model.fit(
                 self._train_ds,
                 epochs=self._epochs,
-                callbacks=[TrainSanityCallback()]
+                callbacks=[TrainSanityAssertionCallback()]
         )
 
     def test_train_complex(self):
@@ -153,7 +137,7 @@ class TestVAE(unittest.TestCase):
         model.fit(
                 self._train_ds,
                 epochs=self._epochs,
-                callbacks=[TrainSanityCallback()]
+                callbacks=[TrainSanityAssertionCallback()]
         )
 
     def test_predict(self):
@@ -166,7 +150,7 @@ class TestVAE(unittest.TestCase):
         model.fit(
                 self._train_ds,
                 epochs=self._epochs,
-                callbacks=[TrainSanityCallback()]
+                callbacks=[TrainSanityAssertionCallback()]
         )
         predictions = model.predict(self._x_test)
 

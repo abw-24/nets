@@ -2,7 +2,8 @@
 import tensorflow as tf
 
 
-class TrainSanityCallback(tf.keras.callbacks.Callback):
+class TrainSanityAssertionCallback(tf.keras.callbacks.Callback):
+
     def on_train_start(self, logs=None):
         self._start_loss = None
         self._min_loss = None
@@ -18,3 +19,26 @@ class TrainSanityCallback(tf.keras.callbacks.Callback):
 
     def on_training_end(self, logs=None):
         assert self._min_loss >= self._start_loss, "Training did not reduce training loss."
+
+
+def try_except_assertion_decorator(fn):
+    """
+    Call an instance method (hence the self), assert that it worked (so that
+     the assertion can be picked up by a test runner), add exception as string
+     message if needed.
+    :param fn: Instance method
+    :return: Method wrapped in try except block + an assertion
+    """
+    def wrapper(self):
+        success = True
+        try:
+            fn(self)
+        except Exception as e:
+            success = False
+            msg = e
+        else:
+            msg = "Success!"
+
+        assert success, msg
+
+    return wrapper
