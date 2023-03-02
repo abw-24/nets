@@ -12,24 +12,19 @@ from nets.models.base import BaseModel
 @tf.keras.utils.register_keras_serializable("nets")
 class MLP(BaseModel):
 
-    def __init__(self, hidden_dims, output_shape, input_dim=None, activation="relu",
+    def __init__(self, hidden_dims, output_dim, input_shape=None, activation="relu",
                  output_activation="softmax", kernel_regularizer=None,
                  activity_regularizer=None, name="MLP", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
         self._hidden_dims = hidden_dims
-        self._output_dim = output_shape
-        self._input_shape = input_dim
+        self._output_dim = output_dim
+        self._input_shape = input_shape
         self._activation = activation
         self._output_activation = output_activation
         self._kernel_regularizer = kernel_regularizer
         self._activity_regularizer = activity_regularizer
-
-        self._input_layer = None
-
-        if self._input_shape is not None:
-            self.build(self._input_shape)
 
         self._dense_block = DenseBlock(
             hidden=self._hidden_dims,
@@ -37,10 +32,15 @@ class MLP(BaseModel):
             kernel_regularizer=self._kernel_regularizer,
             activity_regularizer=self._activity_regularizer
         )
+
         self._output_layer = tf.keras.layers.Dense(
                 self._output_dim,
                 activation=self._output_activation
         )
+
+        self._input_layer = None
+        if self._input_shape is not None:
+            self.build(self._input_shape)
 
     def build(self, input_shape):
         """
