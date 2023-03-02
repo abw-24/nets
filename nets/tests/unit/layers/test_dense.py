@@ -42,7 +42,7 @@ class TestDense(unittest.TestCase):
 
     @try_except_assertion_decorator
     def test_build_from_config(self):
-        _ = DenseBlock(hidden=self._hidden_dims)
+        _ = DenseBlock.from_config(self._default_config)
 
     def test_build_get_config(self):
         block = DenseBlock(**self._default_config)
