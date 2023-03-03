@@ -26,7 +26,7 @@ class DenseGaussianVariationalEncoder(tf.keras.Model):
         self._sparse_flag = sparse_flag
 
         self._encoding_block = DenseBlock(
-                hidden=self._encoding_dims,
+                hidden_dims=self._encoding_dims,
                 activation=self._activation,
                 activity_regularizer=self._activity_regularizer
         )
@@ -130,7 +130,7 @@ class VAE(BaseModel):
                 input_shape=(input_shape[-1],)
         )
         self._decode_block = DenseBlock(
-                hidden=self._encoding_dims,
+                hidden_dims=self._encoding_dims,
                 activation=self._activation,
                 activity_regularizer=self._activity_regularizer
         )
