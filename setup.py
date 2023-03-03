@@ -4,10 +4,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="nets-abw",
+    name="nets",
     version="0.0.1",
-    author="Andrew West",
-    description="Network architectures written in TF 2.0",
+    description="TF 2.x networks",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/abw-24/nets",
@@ -17,5 +16,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 )
