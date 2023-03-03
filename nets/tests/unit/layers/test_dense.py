@@ -17,24 +17,24 @@ class TestDense(unittest.TestCase):
         self._activation = "relu"
 
         self._default_config = {
-            "hidden": self._hidden_dims,
+            "hidden_dims": self._hidden_dims,
             "activation": self._activation
         }
 
     @try_except_assertion_decorator
     def test_build_basic_with_constructor_defaults(self):
-        _ = DenseBlock(hidden=self._hidden_dims)
+        _ = DenseBlock(hidden_dims=self._hidden_dims)
 
     @try_except_assertion_decorator
     def test_build_basic(self):
-        _ = DenseBlock(hidden=self._hidden_dims, activation=self._activation)
+        _ = DenseBlock(hidden_dims=self._hidden_dims, activation=self._activation)
 
     @try_except_assertion_decorator
     def test_build_complex(self):
         activity_regularizer = get_obj(tf.keras.regularizers, {"L2": {}})
         kernel_regularizer = get_obj(tf.keras.regularizers, {"L2": {}})
         _ = DenseBlock(
-            hidden=self._hidden_dims,
+            hidden_dims=self._hidden_dims,
             activation=self._activation,
             activity_regularizer=activity_regularizer,
             kernel_regularizer=kernel_regularizer

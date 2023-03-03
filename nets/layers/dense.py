@@ -5,15 +5,15 @@ import tensorflow as tf
 @tf.keras.utils.register_keras_serializable("nets")
 class DenseBlock(tf.keras.layers.Layer):
 
-    def __init__(self, hidden, activation="relu", kernel_regularizer=None,
+    def __init__(self, hidden_dims, activation="relu", kernel_regularizer=None,
                  activity_regularizer=None, **kwargs):
 
         super(DenseBlock, self).__init__(**kwargs)
 
-        if isinstance(hidden, int):
-            self._hidden = [hidden]
+        if isinstance(hidden_dims, int):
+            self._hidden = [hidden_dims]
         else:
-            self._hidden = hidden
+            self._hidden = hidden_dims
         if isinstance(activation, str):
             self._activation = [activation]*len(self._hidden)
         else:

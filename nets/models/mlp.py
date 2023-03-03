@@ -27,7 +27,7 @@ class MLP(BaseModel):
         self._activity_regularizer = activity_regularizer
 
         self._dense_block = DenseBlock(
-            hidden=self._hidden_dims,
+            hidden_dims=self._hidden_dims,
             activation=self._activation,
             kernel_regularizer=self._kernel_regularizer,
             activity_regularizer=self._activity_regularizer
@@ -85,7 +85,7 @@ class MLP(BaseModel):
         config.update({
             "hidden_dims": self._hidden_dims,
             "output_dim": self._output_dim,
-            "input_dim": self._input_dim,
+            "input_shape": self._input_shape,
             "activation": self._activation,
             "output_activation": self._output_activation,
             "kernel_regularizer": self._kernel_regularizer,
