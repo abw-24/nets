@@ -11,11 +11,11 @@ class DenseBlock(tf.keras.layers.Layer):
         super(DenseBlock, self).__init__(**kwargs)
 
         if isinstance(hidden_dims, int):
-            self._hidden = [hidden_dims]
+            self._hidden_dims = [hidden_dims]
         else:
-            self._hidden = hidden_dims
+            self._hidden_dims = hidden_dims
         if isinstance(activation, str):
-            self._activation = [activation]*len(self._hidden)
+            self._activation = [activation]*len(self._hidden_dims)
         else:
             self._activation = activation
 
@@ -29,7 +29,7 @@ class DenseBlock(tf.keras.layers.Layer):
                     kernel_regularizer=self._kernel_regularizer,
                     activity_regularizer=self._activity_regularizer
             )
-            for d, a in zip(self._hidden, self._activation)
+            for d, a in zip(self._hidden_dims, self._activation)
         ]
 
     def call(self, inputs, training=False):
@@ -46,7 +46,7 @@ class DenseBlock(tf.keras.layers.Layer):
     def get_config(self):
         config = super(DenseBlock, self).get_config()
         config.update({
-            "hidden": self._hidden,
+            "hidden_dims": self._hidden_dims,
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer
