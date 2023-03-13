@@ -1,10 +1,9 @@
-
-import tensorflow as tf
 import unittest
-import numpy as np
 
+import numpy as np
 from nets.models.mlp import MLP
 from nets.utils import get_obj
+
 from nets.tests.utils import *
 
 

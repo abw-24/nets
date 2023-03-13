@@ -4,8 +4,8 @@ MLP.
 """
 
 import tensorflow as tf
-
 from nets.layers.dense import DenseBlock
+
 from nets.models.base import BaseModel
 
 

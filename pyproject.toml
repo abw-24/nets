@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nets"
+authors = [{name = "Andrew West"}]
+version = "0.0.1"
+description = "TensorFlow 2.x network architectures"
+readme = "README.md"
+classifiers = ["Programming Language :: Python :: 3"]
+requires-python = ">=3.7"
+dependencies = [
+    "tensorflow",
+    "gym",
+    "pytest"
+]

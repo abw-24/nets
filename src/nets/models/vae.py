@@ -4,10 +4,10 @@ VAE
 """
 
 import tensorflow as tf
-
 from nets.layers.dense import DenseBlock
-from nets.layers.sampling import GaussianSampling
 from nets.models.base import BaseModel
+
+from nets.layers.sampling import GaussianSampling
 
 
 @tf.keras.utils.register_keras_serializable("nets")
