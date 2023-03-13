@@ -22,4 +22,4 @@ jobs:
       - name: Test with pytest
         run: |
           pip install pytest
-          pytest src/tests --disable-warnings
+          pytest --disable-warnings
