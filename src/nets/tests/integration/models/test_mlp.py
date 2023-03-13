@@ -1,14 +1,13 @@
-
-import tensorflow as tf
 import unittest
-import numpy as np
 
-from nets.models.vae import VAE
+import numpy as np
+from nets.models.mlp import MLP
 from nets.utils import get_obj
+
 from nets.tests.utils import *
 
 
-class TestVAE(unittest.TestCase):
+class TestMLP(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -42,10 +41,10 @@ class TestVAE(unittest.TestCase):
         Create fresh default params for each test.
         """
         self._input_shape = (32, 784)
-        self._encoding_dims = [8]
+        self._hidden_dims = [32, 16]
         self._activation = "relu"
-        self._latent_dim = 4
-        self._reconstruction_activation = "sigmoid"
+        self._output_dim = 10
+        self._output_activation = "softmax"
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
         self._loss = {"MeanSquaredError": {}}
         self._epochs = 1
@@ -53,14 +52,14 @@ class TestVAE(unittest.TestCase):
     def _generate_default_compiled_model(self):
         """
         Instantiate and return a model with the default params and compiled
-        with the default loss and optimizer.
+        with the default loss and optimizer defined in setUp
         :return:
         """
-        model = VAE(
-            encoding_dims=self._encoding_dims,
-            latent_dim=self._latent_dim,
+        model = MLP(
+            hidden_dims=self._hidden_dims,
+            output_dim=self._output_dim,
             activation=self._activation,
-            reconstruction_activation=self._reconstruction_activation
+            output_activation=self._output_activation
         )
         model.build(input_shape=self._input_shape)
         model.compile(
@@ -72,7 +71,7 @@ class TestVAE(unittest.TestCase):
     @try_except_assertion_decorator
     def test_build_basic(self):
         """
-        Test that default model creation works.
+        Test that basic model creation works with the default model
         :return:
         """
         _ = self._generate_default_compiled_model()
@@ -80,17 +79,17 @@ class TestVAE(unittest.TestCase):
     @try_except_assertion_decorator
     def test_build_no_build(self):
         """
-        Test that model creation works when specifying the input shape in the
-         model constructor (triggering a call of build on construction).
+        Test that model creation works when specifying input shape in the model
+        parameters as opposed to later invoking .build() manually
         :return:
         """
-        model = VAE(
-                input_shape=self._input_shape,
-                encoding_dims=self._encoding_dims,
-                latent_dim=self._latent_dim,
-                activation=self._activation,
-                reconstruction_activation=self._reconstruction_activation
-            )
+        model = MLP(
+            input_shape=self._input_shape,
+            hidden_dims=self._hidden_dims,
+            activation=self._activation,
+            output_dim=self._output_dim,
+            output_activation=self._output_activation
+        )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer),
             loss=get_obj(tf.keras.losses, self._loss)
@@ -119,14 +118,14 @@ class TestVAE(unittest.TestCase):
         """
         optimizer = {"RMSprop": {"learning_rate": 0.001}}
         loss = {"MeanAbsoluteError": {}}
-        activity_regularizer = {"L2": {}}
-        encoding_dims = [64, 32, 16]
+        activity_regularizer =  {"L2": {}}
+        hidden_dims = [64, 32, 16]
 
-        model = VAE(
-                encoding_dims=encoding_dims,
+        model = MLP(
+                hidden_dims=hidden_dims,
                 activation=self._activation,
-                latent_dim=self._latent_dim,
-                reconstruction_activation=self._reconstruction_activation,
+                output_dim=self._output_dim,
+                output_activation=self._output_activation,
                 activity_regularizer=get_obj(tf.keras.regularizers, activity_regularizer)
             )
         model.build(input_shape=self._input_shape)
@@ -145,7 +144,6 @@ class TestVAE(unittest.TestCase):
         Test that prediction works and returns the right type.
         :return:
         """
-
         model = self._generate_default_compiled_model()
         model.fit(
                 self._train_ds,
