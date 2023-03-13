@@ -21,4 +21,5 @@ jobs:
           python -m pip install --upgrade pip
       - name: Test with pytest
         run: |
-          pytest --disable-warnings
+          pip install pytest
+          pytest src/tests --disable-warnings
