@@ -1,8 +1,8 @@
-
 import unittest
 
 from nets.layers.dense import DenseBlock
 from nets.utils import get_obj
+
 from nets.tests.utils import *
 
 
