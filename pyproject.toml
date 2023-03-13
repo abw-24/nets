@@ -12,5 +12,6 @@ classifiers = ["Programming Language :: Python :: 3"]
 requires-python = ">=3.7"
 dependencies = [
     "tensorflow",
-    "gym"
+    "gym",
+    "pytest"
 ]
