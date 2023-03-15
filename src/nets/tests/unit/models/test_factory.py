@@ -1,7 +1,7 @@
 import unittest
 
 import tensorflow as tf
-from nets.models.factory import VAEFactory, MLPFactory
+from nets.models.factory import GaussianDenseVAEFactory, MLPFactory
 from nets.utils import get_obj
 
 from nets.tests.utils import try_except_assertion_decorator
@@ -50,7 +50,7 @@ class TestFactory(unittest.TestCase):
 
     @try_except_assertion_decorator
     def test_vae_factory_basic(self):
-        vae = VAEFactory.apply(self._default_vae_config)
+        vae = GaussianDenseVAEFactory.apply(self._default_vae_config)
         vae.build(self._input_shape)
 
     @try_except_assertion_decorator
@@ -60,4 +60,4 @@ class TestFactory(unittest.TestCase):
                 "activity_regularizer": get_obj(tf.keras.regularizers, {"L2": {}}),
                 "kernel_regularizer": get_obj(tf.keras.regularizers, {"L2": {}})
         })
-        _ = VAEFactory.apply(self._default_vae_config)
+        _ = GaussianDenseVAEFactory.apply(self._default_vae_config)

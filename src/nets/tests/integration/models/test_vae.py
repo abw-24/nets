@@ -1,13 +1,18 @@
 import unittest
 
 import numpy as np
-from nets.models.vae import VAE
+import os
+import shutil
+import tensorflow as tf
+from nets.models.vae import GaussianDenseVAE
 from nets.utils import get_obj
 
 from nets.tests.utils import *
 
 
 class TestVAE(unittest.TestCase):
+
+    temp = os.path.join(os.getcwd(), "vae-encoder-tmp-model")
 
     @classmethod
     def setUpClass(cls):
@@ -30,11 +35,12 @@ class TestVAE(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """
-        Delete training data.
-        :return:
+        Delete training data, saved model.
         """
         del cls._train_ds
         del cls._x_test
+        if os.path.exists(cls.temp):
+            shutil.rmtree(cls.temp)
 
     def setUp(self):
         """
@@ -53,9 +59,8 @@ class TestVAE(unittest.TestCase):
         """
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer.
-        :return:
         """
-        model = VAE(
+        model = GaussianDenseVAE(
             encoding_dims=self._encoding_dims,
             latent_dim=self._latent_dim,
             activation=self._activation,
@@ -72,7 +77,6 @@ class TestVAE(unittest.TestCase):
     def test_build_basic(self):
         """
         Test that default model creation works.
-        :return:
         """
         _ = self._generate_default_compiled_model()
 
@@ -80,27 +84,25 @@ class TestVAE(unittest.TestCase):
     def test_build_no_build(self):
         """
         Test that model creation works when specifying the input shape in the
-         model constructor (triggering a call of build on construction).
-        :return:
+         model constructor (triggering a call of `build` on construction).
         """
-        model = VAE(
+        model = GaussianDenseVAE(
                 input_shape=self._input_shape,
                 encoding_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
                 activation=self._activation,
                 reconstruction_activation=self._reconstruction_activation
-            )
+        )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer),
             loss=get_obj(tf.keras.losses, self._loss)
         )
 
-    def test_train_basic(self):
+    def test_fit_basic(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
         for the default model. Assertion is done directly in
         TrainSanityCallback.
-        :return:
         """
         model = self._generate_default_compiled_model()
         model.fit(
@@ -109,7 +111,7 @@ class TestVAE(unittest.TestCase):
                 callbacks=[TrainSanityAssertionCallback()]
         )
 
-    def test_train_complex(self):
+    def test_fit_complex(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
         for a more complex model with a different compiled loss and optimizer.
@@ -121,7 +123,7 @@ class TestVAE(unittest.TestCase):
         activity_regularizer = {"L2": {}}
         encoding_dims = [64, 32, 16]
 
-        model = VAE(
+        model = GaussianDenseVAE(
                 encoding_dims=encoding_dims,
                 activation=self._activation,
                 latent_dim=self._latent_dim,
@@ -142,16 +144,42 @@ class TestVAE(unittest.TestCase):
     def test_predict(self):
         """
         Test that prediction works and returns the right type.
-        :return:
         """
 
         model = self._generate_default_compiled_model()
         model.fit(
                 self._train_ds,
-                epochs=self._epochs,
-                callbacks=[TrainSanityAssertionCallback()]
+                epochs=self._epochs
         )
         predictions = model.predict(self._x_test)
 
         assert isinstance(predictions, np.ndarray)\
                or isinstance(predictions, tf.Tensor)
+
+    @try_except_assertion_decorator
+    def test_save_and_load(self):
+        """
+        Test that saving and loading works. Here, we test the encoder submodel
+        as opposed to the full model for two reasons:
+
+         (1) Keeping only the encoder portion for later inference is by far the
+          most frequent use-case
+
+         (2) Saving the entire model will not work as is -- the model's `call`
+         method must return only the reconstructed inputs to have
+         high-level keras API methods like `predict` work as expected,
+         but the custom `train_step` needs both the reconstructions and the
+         distribution parameters for the latent space to compute the composite
+         loss metric for training. As a result, `self.__call__` cannot be used
+         to compute the full forward pass in `train_step`, and saving fails.
+         This could potentially be worked around by re-implementing `call`
+         and `predict_on_batch` if it is of interest.
+        """
+
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train_ds,
+                epochs=self._epochs
+        )
+        model.encoder.save(self.temp)
+        _ = tf.keras.models.load_model(self.temp)

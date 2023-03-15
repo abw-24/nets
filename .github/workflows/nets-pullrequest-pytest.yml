@@ -25,4 +25,5 @@ jobs:
       - name: Test with pytest
         run: |
           pip install pytest
-          pytest --disable-warnings
+          pytest src/nets/tests/unit --disable-warnings
+          pytest src/nets/tests/integration --disable-warnings

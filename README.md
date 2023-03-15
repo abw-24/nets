@@ -1,5 +1,5 @@
 # nets
-Various network architectures written in TensorFlow 2
+Tensorflow 2.x network architectures
 
-* Models are subclassed from tf.keras.Model
-* Computations are primarily housed in custom block layers, allowing easy porting to the functional API
+* Models are subclassed from tf.keras.Model to retain the high-level `keras` API
+* Computations are primarily housed in custom block layers and/or submodels, making for easy reuse
