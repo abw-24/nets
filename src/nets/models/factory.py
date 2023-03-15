@@ -4,7 +4,7 @@ Model class factories.
 """
 
 from nets.models.mlp import MLP
-from nets.models.vae import VAE
+from nets.models.vae import GaussianDenseVAE
 
 
 class MLPFactory(object):
@@ -17,8 +17,8 @@ class MLPFactory(object):
         output_dim = config.get("output_dim")
         activation = config.get("activation", "relu")
         output_activation = config.get("output_activation", None)
-        k_regularizer = config.get("kernel_regularizer", None)
-        a_regularizer = config.get("activity_regularizer", None)
+        kernel_regularizer = config.get("kernel_regularizer", None)
+        activity_regularizer = config.get("activity_regularizer", None)
 
         return MLP(
                 hidden_dims=hidden_dims,
@@ -26,12 +26,12 @@ class MLPFactory(object):
                 input_shape=input_shape,
                 activation=activation,
                 output_activation=output_activation,
-                kernel_regularizer=k_regularizer,
-                activity_regularizer=a_regularizer
+                kernel_regularizer=kernel_regularizer,
+                activity_regularizer=activity_regularizer
         )
 
 
-class VAEFactory(object):
+class GaussianDenseVAEFactory(object):
 
     @classmethod
     def apply(cls, config):
@@ -41,15 +41,17 @@ class VAEFactory(object):
         input_shape = config.get("input_shape", None)
         activation = config.get("activation", "relu")
         activity_regularizer = config.get("activity_regularizer", None)
+        kernel_regularizer = config.get("kernel_regularizer", None)
         reconstruction_activation = config.get("reconstruction_activation", None)
         sparse_flag = config.get("sparse_flag", False)
 
-        return VAE(
+        return GaussianDenseVAE(
             encoding_dims=encoding_dims,
             latent_dim=latent_dim,
             input_shape=input_shape,
             activation=activation,
             activity_regularizer=activity_regularizer,
+            kernel_regularizer=kernel_regularizer,
             reconstruction_activation=reconstruction_activation,
             sparse_flag=sparse_flag
         )
