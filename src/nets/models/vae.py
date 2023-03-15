@@ -12,7 +12,7 @@ from nets.layers.sampling import GaussianSampling
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class DenseGaussianVariationalEncoder(BaseModel):
+class GaussianDenseVariationalEncoder(BaseModel):
 
     def __init__(self, encoding_dims, latent_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
@@ -65,12 +65,13 @@ class DenseGaussianVariationalEncoder(BaseModel):
         return z_mean, z_log_var, z
 
     def get_config(self):
-        config = super(DenseGaussianVariationalEncoder, self).get_config()
+        config = super(GaussianDenseVariationalEncoder, self).get_config()
         config.update({
             "encoding_dims": self._encoding_dims,
             "latent_dim": self._latent_dim,
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
+            "kernel_regularizer": self._kernel_regularizer,
             "sparse_flag": self._sparse_flag
         })
         return config
@@ -81,7 +82,7 @@ class DenseGaussianVariationalEncoder(BaseModel):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class DenseGaussianVariationalDecoder(BaseModel):
+class GaussianDenseVariationalDecoder(BaseModel):
 
     def __init__(self, decoding_dims, output_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
@@ -94,6 +95,7 @@ class DenseGaussianVariationalDecoder(BaseModel):
         self._output_dim = output_dim
         self._activation = activation
         self._activity_regularizer = activity_regularizer
+        self._kernel_regularizer = kernel_regularizer
         self._reconstruction_activation = reconstruction_activation
         self._sparse_flag = sparse_flag
 
@@ -129,12 +131,13 @@ class DenseGaussianVariationalDecoder(BaseModel):
         return self._output_layer(self._decoding_block(self._input_layer(inputs)))
 
     def get_config(self):
-        config = super(DenseGaussianVariationalDecoder, self).get_config()
+        config = super(GaussianDenseVariationalDecoder, self).get_config()
         config.update({
             "decoding_dims": self._decoding_dims,
             "output_dim": self._output_dim,
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
+            "kernel_regularizer": self._kernel_regularizer,
             "reconstruction_activation": self._reconstruction_activation,
             "sparse_flag": self._sparse_flag
         })
@@ -146,7 +149,7 @@ class DenseGaussianVariationalDecoder(BaseModel):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class GaussianVAE(BaseModel):
+class GaussianDenseVAE(BaseModel):
     """
     Variational autoencoder with dense encoding/decoding layers.
     """
@@ -187,7 +190,7 @@ class GaussianVAE(BaseModel):
         ]
 
         # Encoder
-        self._encoder = DenseGaussianVariationalEncoder(
+        self._encoder = GaussianDenseVariationalEncoder(
             encoding_dims=self._encoding_dims,
             latent_dim=self._latent_dim,
             activation=self._activation,
@@ -214,7 +217,7 @@ class GaussianVAE(BaseModel):
 
         self._encoder.build(self._input_shape)
 
-        self._decoder = DenseGaussianVariationalDecoder(
+        self._decoder = GaussianDenseVariationalDecoder(
             decoding_dims=self._encoding_dims[::-1],
             output_dim=self._input_shape[-1],
             activation=self._activation,
@@ -288,13 +291,14 @@ class GaussianVAE(BaseModel):
         return self._decoder.__call__(latent)
 
     def get_config(self):
-        config = super(GaussianVAE, self).get_config()
+        config = super(GaussianDenseVAE, self).get_config()
         config.update({
             "encoding_dims": self._encoding_dims,
             "latent_dim": self._latent_dim,
             "activation": self._activation,
             "reconstruction_activation": self._reconstruction_activation,
             "activity_regularizer": self._activity_regularizer,
+            "kernel_regularizer": self._kernel_regularizer,
             "discrepancy_loss": self._discrepancy_loss,
             "sparse_flag": self._sparse_flag
         })
