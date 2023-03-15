@@ -4,9 +4,10 @@ VAE
 """
 
 import tensorflow as tf
+from tensorflow_model_remediation.min_diff.losses import MMDLoss
+
 from nets.layers.dense import DenseBlock
 from nets.models.base import BaseModel
-
 from nets.layers.sampling import GaussianSampling
 
 
@@ -14,22 +15,25 @@ from nets.layers.sampling import GaussianSampling
 class DenseGaussianVariationalEncoder(BaseModel):
 
     def __init__(self, encoding_dims, latent_dim, activation="relu",
-                 activity_regularizer=None, sparse_flag=False, name="VAE",
-                 **kwargs):
+                 activity_regularizer=None, kernel_regularizer=None,
+                 reconstruction_activation="linear", sparse_flag=False,
+                 name="DGVE", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
         self._encoding_dims = encoding_dims
         self._latent_dim = latent_dim
         self._activation = activation
-        self._a_regularizer = activity_regularizer
+        self._activity_regularizer = activity_regularizer
+        self._kernel_regularizer = kernel_regularizer
         self._sparse_flag = sparse_flag
 
         self._input_layer = None
         self._encoding_block = DenseBlock(
                 hidden_dims=self._encoding_dims,
                 activation=self._activation,
-                activity_regularizer=self._activity_regularizer
+                activity_regularizer=self._activity_regularizer,
+                kernel_regularizer=self._kernel_regularizer
         )
         self._latent_mean = tf.keras.layers.Dense(self._latent_dim)
         self._latent_log_var = tf.keras.layers.Dense(self._latent_dim)
@@ -80,15 +84,16 @@ class DenseGaussianVariationalEncoder(BaseModel):
 class DenseGaussianVariationalDecoder(BaseModel):
 
     def __init__(self, decoding_dims, output_dim, activation="relu",
-                 activity_regularizer=None, reconstruction_activation="linear",
-                 sparse_flag=False, name="VAE", **kwargs):
+                 activity_regularizer=None, kernel_regularizer=None,
+                 reconstruction_activation="linear", sparse_flag=False,
+                 name="DGVD", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
         self._decoding_dims = decoding_dims
         self._output_dim = output_dim
         self._activation = activation
-        self._a_regularizer = activity_regularizer
+        self._activity_regularizer = activity_regularizer
         self._reconstruction_activation = reconstruction_activation
         self._sparse_flag = sparse_flag
 
@@ -141,15 +146,15 @@ class DenseGaussianVariationalDecoder(BaseModel):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class VAE(BaseModel):
+class GaussianVAE(BaseModel):
     """
     Variational autoencoder with dense encoding/decoding layers.
     """
 
     def __init__(self, encoding_dims, latent_dim, input_shape=None,
                  activation="relu", activity_regularizer=None,
-                 reconstruction_activation=None, sparse_flag=False,
-                 name="VAE", **kwargs):
+                 kernel_regularizer=None, reconstruction_activation=None,
+                 discrepancy_loss="mmd", sparse_flag=False, name="VAE", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
@@ -158,7 +163,9 @@ class VAE(BaseModel):
         self._input_shape = input_shape
         self._activation = activation
         self._activity_regularizer = activity_regularizer
+        self._kernel_regularizer = kernel_regularizer
         self._reconstruction_activation = reconstruction_activation
+        self._discrepancy_loss = discrepancy_loss
         self._sparse_flag = sparse_flag
 
         self._loss_tracker = tf.keras.metrics.Mean(
@@ -170,6 +177,8 @@ class VAE(BaseModel):
         self._discrepancy_loss_tracker =tf. keras.metrics.Mean(
                 name="discrepancy_loss"
         )
+        # For simplicity, create an MMD loss object even if not needed
+        self._mmd_loss = MMDLoss(kernel="gaussian")
 
         self._tracked_metrics = [
             self._loss_tracker,
@@ -177,17 +186,18 @@ class VAE(BaseModel):
             self._discrepancy_loss_tracker
         ]
 
-        # Encoding layer
+        # Encoder
         self._encoder = DenseGaussianVariationalEncoder(
             encoding_dims=self._encoding_dims,
             latent_dim=self._latent_dim,
             activation=self._activation,
-            activity_regularizer=self._activity_regularizer
+            activity_regularizer=self._activity_regularizer,
+            kernel_regularizer=self._kernel_regularizer
         )
 
-        # Input layer and decode blocks can only be defined now if we
+        # Input layer and decoder can only be defined now if we
         # received an input_shape. Otherwise deferred to a .build()
-        # call by the client.
+        # call by the user.
         self._decoder = None
         if self._input_shape is not None:
             self.build(self._input_shape)
@@ -201,6 +211,7 @@ class VAE(BaseModel):
         """
         self._input_shape = input_shape
         self._input_dim = input_shape[-1]
+
         self._encoder.build(self._input_shape)
 
         self._decoder = DenseGaussianVariationalDecoder(
@@ -208,6 +219,7 @@ class VAE(BaseModel):
             output_dim=self._input_shape[-1],
             activation=self._activation,
             activity_regularizer=self._activity_regularizer,
+            kernel_regularizer=self._kernel_regularizer,
             reconstruction_activation=self._reconstruction_activation
         )
         self._decoder.build((None, self._latent_dim))
@@ -216,7 +228,7 @@ class VAE(BaseModel):
 
     def train_step(self, data):
         """
-
+        Overrides parent `train_step` to implement custom loss handling.
         :param data:
         :return:
         """
@@ -230,10 +242,22 @@ class VAE(BaseModel):
             reconstruction_loss = self.compiled_loss(
                     tf.reshape(x, (-1, self._input_shape[-1])), reconstruction
             )
-            discrepancy_loss = -0.5 * (
-                1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
-            )
-            discrepancy_loss = tf.reduce_mean(tf.reduce_sum(discrepancy_loss))
+
+            #TODO: refactor if statements to use tensorflow logical gates
+            if self._discrepancy_loss.lower() == "mmd":
+                true_samples = tf.random.normal(tf.stack(
+                        [self._input_shape[0], self._latent_dim]
+                ))
+                discrepancy_loss = self._mmd_loss(z, true_samples)
+            elif self._discrepancy_loss.lower() == "kld":
+                kld = -0.5 * (
+                        1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
+                )
+                discrepancy_loss =  tf.reduce_mean(tf.reduce_sum(kld))
+            else:
+                raise ValueError("Only KLD and MMD currently supported as "
+                                 "difference-in-distribution losses.")
+
             total_loss = reconstruction_loss + discrepancy_loss
 
         gradients = tape.gradient(total_loss, self.trainable_weights)
@@ -260,17 +284,18 @@ class VAE(BaseModel):
         :param inputs:
         :return:
         """
-        z_mean, z_log_var, z = self._encoder.__call__(inputs)
-        return self._decoder.__call__(z)
+        _, _, latent = self._encoder.__call__(inputs)
+        return self._decoder.__call__(latent)
 
     def get_config(self):
-        config = super(VAE, self).get_config()
+        config = super(GaussianVAE, self).get_config()
         config.update({
             "encoding_dims": self._encoding_dims,
             "latent_dim": self._latent_dim,
             "activation": self._activation,
             "reconstruction_activation": self._reconstruction_activation,
             "activity_regularizer": self._activity_regularizer,
+            "discrepancy_loss": self._discrepancy_loss,
             "sparse_flag": self._sparse_flag
         })
         return config

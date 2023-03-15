@@ -4,7 +4,7 @@ import numpy as np
 import os
 import shutil
 import tensorflow as tf
-from nets.models.vae import VAE
+from nets.models.vae import GaussianVAE
 from nets.utils import get_obj
 
 from nets.tests.utils import *
@@ -60,7 +60,7 @@ class TestVAE(unittest.TestCase):
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer.
         """
-        model = VAE(
+        model = GaussianVAE(
             encoding_dims=self._encoding_dims,
             latent_dim=self._latent_dim,
             activation=self._activation,
@@ -86,7 +86,7 @@ class TestVAE(unittest.TestCase):
         Test that model creation works when specifying the input shape in the
          model constructor (triggering a call of `build` on construction).
         """
-        model = VAE(
+        model = GaussianVAE(
                 input_shape=self._input_shape,
                 encoding_dims=self._encoding_dims,
                 latent_dim=self._latent_dim,
@@ -123,7 +123,7 @@ class TestVAE(unittest.TestCase):
         activity_regularizer = {"L2": {}}
         encoding_dims = [64, 32, 16]
 
-        model = VAE(
+        model = GaussianVAE(
                 encoding_dims=encoding_dims,
                 activation=self._activation,
                 latent_dim=self._latent_dim,

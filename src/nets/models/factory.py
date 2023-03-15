@@ -4,7 +4,7 @@ Model class factories.
 """
 
 from nets.models.mlp import MLP
-from nets.models.vae import VAE
+from nets.models.vae import GaussianVAE
 
 
 class MLPFactory(object):
@@ -44,7 +44,7 @@ class VAEFactory(object):
         reconstruction_activation = config.get("reconstruction_activation", None)
         sparse_flag = config.get("sparse_flag", False)
 
-        return VAE(
+        return GaussianVAE(
             encoding_dims=encoding_dims,
             latent_dim=latent_dim,
             input_shape=input_shape,
