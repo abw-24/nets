@@ -65,7 +65,7 @@ class MLP(BaseModel):
         x, y = data
         # Use the graph for the forward pass and compute the compiled loss
         with tf.GradientTape() as tape:
-            y_hat = self._output_layer(self._dense_block(self._input_layer(x)))
+            y_hat = self.__call__(x)
             loss = self.compiled_loss(y, y_hat)
         # Compute gradients
         gradients = tape.gradient(loss, self._dense_block.trainable_variables)

@@ -1,6 +1,9 @@
 import unittest
 
 import numpy as np
+import os
+import shutil
+import tensorflow as tf
 from nets.models.mlp import MLP
 from nets.utils import get_obj
 
@@ -8,6 +11,8 @@ from nets.tests.utils import *
 
 
 class TestMLP(unittest.TestCase):
+
+    temp = os.path.join(os.getcwd(), "mlp-tmp-model")
 
     @classmethod
     def setUpClass(cls):
@@ -30,11 +35,12 @@ class TestMLP(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """
-        Delete training data.
-        :return:
+        Delete training data, saved model.
         """
         del cls._train_ds
         del cls._x_test
+        if os.path.exists(cls.temp):
+            shutil.rmtree(cls.temp)
 
     def setUp(self):
         """
@@ -53,7 +59,6 @@ class TestMLP(unittest.TestCase):
         """
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer defined in setUp
-        :return:
         """
         model = MLP(
             hidden_dims=self._hidden_dims,
@@ -72,7 +77,6 @@ class TestMLP(unittest.TestCase):
     def test_build_basic(self):
         """
         Test that basic model creation works with the default model
-        :return:
         """
         _ = self._generate_default_compiled_model()
 
@@ -81,7 +85,6 @@ class TestMLP(unittest.TestCase):
         """
         Test that model creation works when specifying input shape in the model
         parameters as opposed to later invoking .build() manually
-        :return:
         """
         model = MLP(
             input_shape=self._input_shape,
@@ -95,12 +98,11 @@ class TestMLP(unittest.TestCase):
             loss=get_obj(tf.keras.losses, self._loss)
         )
 
-    def test_train_basic(self):
+    def test_fit_basic(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
         for the default model. Assertion is done directly in
         TrainSanityCallback.
-        :return:
         """
         model = self._generate_default_compiled_model()
         model.fit(
@@ -109,12 +111,11 @@ class TestMLP(unittest.TestCase):
                 callbacks=[TrainSanityAssertionCallback()]
         )
 
-    def test_train_complex(self):
+    def test_fit_complex(self):
         """
         Test that training "works" (by the definition of TrainSanityCallback)
         for a more complex model with a different compiled loss and optimizer.
         Assertion is done directly in TrainSanityCallback.
-        :return:
         """
         optimizer = {"RMSprop": {"learning_rate": 0.001}}
         loss = {"MeanAbsoluteError": {}}
@@ -126,7 +127,9 @@ class TestMLP(unittest.TestCase):
                 activation=self._activation,
                 output_dim=self._output_dim,
                 output_activation=self._output_activation,
-                activity_regularizer=get_obj(tf.keras.regularizers, activity_regularizer)
+                activity_regularizer=get_obj(
+                        tf.keras.regularizers, activity_regularizer
+                )
             )
         model.build(input_shape=self._input_shape)
         model.compile(
@@ -142,7 +145,6 @@ class TestMLP(unittest.TestCase):
     def test_predict(self):
         """
         Test that prediction works and returns the right type.
-        :return:
         """
         model = self._generate_default_compiled_model()
         model.fit(
@@ -154,3 +156,18 @@ class TestMLP(unittest.TestCase):
 
         assert isinstance(predictions, np.ndarray)\
                or isinstance(predictions, tf.Tensor)
+
+    @try_except_assertion_decorator
+    def test_save_and_load(self):
+        """
+        Test that saving and loading works.
+        """
+
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train_ds,
+                epochs=self._epochs,
+                callbacks=[TrainSanityAssertionCallback()]
+        )
+        model.save(self.temp)
+        _ = tf.keras.models.load_model(self.temp)
