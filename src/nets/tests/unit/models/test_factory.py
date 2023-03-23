@@ -44,7 +44,8 @@ class TestFactory(unittest.TestCase):
         self._default_mlp_config.update({
             "input_shape": self._input_shape,
             "activity_regularizer": get_obj(tf.keras.regularizers, {"L2": {}}),
-            "kernel_regularizer": get_obj(tf.keras.regularizers, {"L2": {}})
+            "kernel_regularizer": get_obj(tf.keras.regularizers, {"L2": {}}),
+            "spectral_norm": True
         })
         _ = MLPFactory.apply(self._default_mlp_config)
 
@@ -58,6 +59,7 @@ class TestFactory(unittest.TestCase):
         self._default_vae_config.update({
                 "input_shape": self._input_shape,
                 "activity_regularizer": get_obj(tf.keras.regularizers, {"L2": {}}),
-                "kernel_regularizer": get_obj(tf.keras.regularizers, {"L2": {}})
+                "kernel_regularizer": get_obj(tf.keras.regularizers, {"L2": {}}),
+                "spectral_norm": True
         })
         _ = GaussianDenseVAEFactory.apply(self._default_vae_config)
