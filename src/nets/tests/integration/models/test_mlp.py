@@ -121,6 +121,7 @@ class TestMLP(unittest.TestCase):
         loss = {"MeanAbsoluteError": {}}
         activity_regularizer =  {"L2": {}}
         hidden_dims = [64, 32, 16]
+        spectral_norm = True
 
         model = MLP(
                 hidden_dims=hidden_dims,
@@ -129,7 +130,8 @@ class TestMLP(unittest.TestCase):
                 output_activation=self._output_activation,
                 activity_regularizer=get_obj(
                         tf.keras.regularizers, activity_regularizer
-                )
+                ),
+                spectral_norm=spectral_norm
             )
         model.build(input_shape=self._input_shape)
         model.compile(

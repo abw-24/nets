@@ -1,12 +1,13 @@
 
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 
 @tf.keras.utils.register_keras_serializable("nets")
 class DenseBlock(tf.keras.layers.Layer):
 
     def __init__(self, hidden_dims, activation="relu", kernel_regularizer=None,
-                 activity_regularizer=None, **kwargs):
+                 activity_regularizer=None, spectral_norm=False, **kwargs):
 
         super(DenseBlock, self).__init__(**kwargs)
 
@@ -21,16 +22,21 @@ class DenseBlock(tf.keras.layers.Layer):
 
         self._kernel_regularizer = kernel_regularizer
         self._activity_regularizer = activity_regularizer
+        self._spectral_norm = spectral_norm
 
-        self._block_layers = [
-            tf.keras.layers.Dense(
+        self._block_layers = []
+        for d, a in zip(self._hidden_dims, self._activation):
+            dense = tf.keras.layers.Dense(
                     units=d,
                     activation=a,
                     kernel_regularizer=self._kernel_regularizer,
                     activity_regularizer=self._activity_regularizer
             )
-            for d, a in zip(self._hidden_dims, self._activation)
-        ]
+
+            if self._spectral_norm:
+                self._block_layers.append(tfa.layers.SpectralNormalization(layer=dense))
+            else:
+                self._block_layers.append(dense)
 
     def call(self, inputs, training=False):
         """
@@ -49,7 +55,8 @@ class DenseBlock(tf.keras.layers.Layer):
             "hidden_dims": self._hidden_dims,
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
-            "kernel_regularizer": self._kernel_regularizer
+            "kernel_regularizer": self._kernel_regularizer,
+            "spectral_norm": self._spectral_norm
         })
         return config
 
