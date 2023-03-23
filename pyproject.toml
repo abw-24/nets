@@ -14,5 +14,6 @@ dependencies = [
     "tensorflow",
     "pytest",
     "tensorflow-model-remediation",
-    "tensorflow-addons"
+    "tensorflow-addons",
+    "typeguard >= 2.13, < 3"
 ]

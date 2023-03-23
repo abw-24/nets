@@ -26,7 +26,7 @@ class DenseBlock(tf.keras.layers.Layer):
 
         self._block_layers = []
         for d, a in zip(self._hidden_dims, self._activation):
-            layer = tf.keras.layers.Dense(
+            dense = tf.keras.layers.Dense(
                     units=d,
                     activation=a,
                     kernel_regularizer=self._kernel_regularizer,
@@ -34,9 +34,9 @@ class DenseBlock(tf.keras.layers.Layer):
             )
 
             if self._spectral_norm:
-                layer = tfa.layers.SpectralNormalization(layer)
-
-            self._block_layers.append(layer)
+                self._block_layers.append(tfa.layers.SpectralNormalization(layer=dense))
+            else:
+                self._block_layers.append(dense)
 
     def call(self, inputs, training=False):
         """

@@ -57,14 +57,14 @@ class ConvBlock(tf.keras.layers.Layer):
         self._block_layers = []
         for f, k, s, p in zip(self._filters, self._kernel, self._stride, self._padding):
 
-            conv_layer = tf.keras.layers.Conv2D(
+            conv = tf.keras.layers.Conv2D(
                     f, k, strides=s, padding=p, activation=self._activation
             )
 
             if self._spectral_norm:
-                conv_layer = tfa.layers.SpectralNormalization(conv_layer)
-
-            self._block_layers.append(conv_layer)
+                self._block_layers.append(tfa.layers.SpectralNormalization(conv))
+            else:
+                self._block_layers.append(conv)
 
             if self._batch_norm:
                 self._block_layers.append(tf.keras.layers.BatchNormalization())
