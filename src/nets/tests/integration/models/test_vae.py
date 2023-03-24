@@ -39,8 +39,6 @@ class TestVAE(unittest.TestCase):
         """
         del cls._train_ds
         del cls._x_test
-        if os.path.exists(cls.temp):
-            shutil.rmtree(cls.temp)
 
     def setUp(self):
         """
@@ -54,6 +52,14 @@ class TestVAE(unittest.TestCase):
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
         self._loss = {"MeanSquaredError": {}}
         self._epochs = 1
+
+    def tearDown(self):
+        """
+        If we saved something (a model), delete it.
+        :return:
+        """
+        if os.path.exists(self.temp):
+            shutil.rmtree(self.temp)
 
     def _generate_default_compiled_model(self):
         """
@@ -122,13 +128,15 @@ class TestVAE(unittest.TestCase):
         loss = {"MeanAbsoluteError": {}}
         activity_regularizer = {"L2": {}}
         encoding_dims = [64, 32, 16]
+        spectral_norm = True
 
         model = GaussianDenseVAE(
                 encoding_dims=encoding_dims,
                 activation=self._activation,
                 latent_dim=self._latent_dim,
                 reconstruction_activation=self._reconstruction_activation,
-                activity_regularizer=get_obj(tf.keras.regularizers, activity_regularizer)
+                activity_regularizer=get_obj(tf.keras.regularizers, activity_regularizer),
+                spectral_norm=spectral_norm,
             )
         model.build(input_shape=self._input_shape)
         model.compile(
@@ -157,13 +165,13 @@ class TestVAE(unittest.TestCase):
                or isinstance(predictions, tf.Tensor)
 
     @try_except_assertion_decorator
-    def test_save_and_load(self):
+    def test_save_and_load_encoder(self):
         """
         Test that saving and loading works. Here, we test the encoder submodel
         as opposed to the full model for two reasons:
 
          (1) Keeping only the encoder portion for later inference is by far the
-          most frequent use-case
+          most frequent use-case.
 
          (2) Saving the entire model will not work as is -- the model's `call`
          method must return only the reconstructed inputs to have
@@ -182,4 +190,19 @@ class TestVAE(unittest.TestCase):
                 epochs=self._epochs
         )
         model.encoder.save(self.temp)
+        _ = tf.keras.models.load_model(self.temp)
+
+    @try_except_assertion_decorator
+    def test_save_and_load_decoder(self):
+        """
+        Test that saving and loading works. Here, we test the decoder submodel
+        to complement the `encoder` submodel test above.
+        """
+
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train_ds,
+                epochs=self._epochs
+        )
+        model.decoder.save(self.temp)
         _ = tf.keras.models.load_model(self.temp)

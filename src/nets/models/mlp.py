@@ -12,9 +12,10 @@ from nets.models.base import BaseModel
 @tf.keras.utils.register_keras_serializable("nets")
 class MLP(BaseModel):
 
-    def __init__(self, hidden_dims, output_dim, input_shape=None, activation="relu",
-                 output_activation="softmax", kernel_regularizer=None,
-                 activity_regularizer=None, name="MLP", **kwargs):
+    def __init__(self, hidden_dims, output_dim, input_shape=None,
+                 activation="relu", output_activation="softmax",
+                 kernel_regularizer=None, activity_regularizer=None,
+                 spectral_norm=False, name="MLP", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
@@ -25,12 +26,14 @@ class MLP(BaseModel):
         self._output_activation = output_activation
         self._kernel_regularizer = kernel_regularizer
         self._activity_regularizer = activity_regularizer
+        self._spectral_norm = spectral_norm
 
         self._dense_block = DenseBlock(
             hidden_dims=self._hidden_dims,
             activation=self._activation,
             kernel_regularizer=self._kernel_regularizer,
-            activity_regularizer=self._activity_regularizer
+            activity_regularizer=self._activity_regularizer,
+            spectral_norm=self._spectral_norm
         )
 
         self._output_layer = tf.keras.layers.Dense(
@@ -89,7 +92,8 @@ class MLP(BaseModel):
             "activation": self._activation,
             "output_activation": self._output_activation,
             "kernel_regularizer": self._kernel_regularizer,
-            "activity_regularizer": self._activity_regularizer
+            "activity_regularizer": self._activity_regularizer,
+            "spectral_norm": self._spectral_norm
         })
         return config
 

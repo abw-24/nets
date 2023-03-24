@@ -1,12 +1,14 @@
 
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 
 @tf.keras.utils.register_keras_serializable
 class ConvBlock(tf.keras.layers.Layer):
 
     def __init__(self, filters, kernel=3, stride=(1,1), padding="same",
-            activation="relu", pool=True, batch_norm=False, **kwargs):
+                 activation="relu", pool=True, batch_norm=False,
+                 spectral_norm=True, **kwargs):
         """
         2d CNN Block (series of convolution and pooling ops). Assumes reshaping
          and input formatting is done already, and expects the input shape to
@@ -21,6 +23,7 @@ class ConvBlock(tf.keras.layers.Layer):
         :param activation: Activation function (str)
         :param pool: Flag to add pooling layer after each convolution (bool)
         :param batch_norm: Flag to add batch normalization after each convolution (bool)
+        :param spectral_norm: Flag to apply spectral normalization to conv layer weights (bool)
         :return:
         """
 
@@ -28,7 +31,8 @@ class ConvBlock(tf.keras.layers.Layer):
 
         self._pool_flag = pool
         self._activation = activation
-        self._batch_norm_flag = batch_norm
+        self._batch_norm = batch_norm
+        self._spectral_norm = spectral_norm
 
         if isinstance(filters, int):
             self._filters = [filters]
@@ -52,10 +56,17 @@ class ConvBlock(tf.keras.layers.Layer):
 
         self._block_layers = []
         for f, k, s, p in zip(self._filters, self._kernel, self._stride, self._padding):
-            self._block_layers.append(tf.keras.layers.Conv2D(
+
+            conv = tf.keras.layers.Conv2D(
                     f, k, strides=s, padding=p, activation=self._activation
-            ))
-            if self._batch_norm_flag:
+            )
+
+            if self._spectral_norm:
+                self._block_layers.append(tfa.layers.SpectralNormalization(conv))
+            else:
+                self._block_layers.append(conv)
+
+            if self._batch_norm:
                 self._block_layers.append(tf.keras.layers.BatchNormalization())
             if self._pool_flag:
                 self._block_layers.append(tf.keras.layers.MaxPooling2D())
@@ -80,7 +91,8 @@ class ConvBlock(tf.keras.layers.Layer):
             "padding": self._padding,
             "activation": self._activation,
             "pool": self._pool_flag,
-            "batch_norm": self._batch_norm_flag
+            "batch_norm": self._batch_norm,
+            "spectral_norm": self._spectral_norm
         })
         return config
 

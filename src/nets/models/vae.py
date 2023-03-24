@@ -16,8 +16,7 @@ class GaussianDenseVariationalEncoder(BaseModel):
 
     def __init__(self, encoding_dims, latent_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
-                 reconstruction_activation="linear", sparse_flag=False,
-                 name="DGVE", **kwargs):
+                 spectral_norm=False, sparse_flag=False, name="DGVE", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -26,6 +25,7 @@ class GaussianDenseVariationalEncoder(BaseModel):
         self._activation = activation
         self._activity_regularizer = activity_regularizer
         self._kernel_regularizer = kernel_regularizer
+        self._spectral_norm = spectral_norm
         self._sparse_flag = sparse_flag
 
         self._input_layer = None
@@ -33,7 +33,8 @@ class GaussianDenseVariationalEncoder(BaseModel):
                 hidden_dims=self._encoding_dims,
                 activation=self._activation,
                 activity_regularizer=self._activity_regularizer,
-                kernel_regularizer=self._kernel_regularizer
+                kernel_regularizer=self._kernel_regularizer,
+                spectral_norm=self._spectral_norm
         )
         self._latent_mean = tf.keras.layers.Dense(self._latent_dim)
         self._latent_log_var = tf.keras.layers.Dense(self._latent_dim)
@@ -72,6 +73,7 @@ class GaussianDenseVariationalEncoder(BaseModel):
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer,
+            "spectral_norm": self._spectral_norm,
             "sparse_flag": self._sparse_flag
         })
         return config
@@ -86,8 +88,8 @@ class GaussianDenseVariationalDecoder(BaseModel):
 
     def __init__(self, decoding_dims, output_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
-                 reconstruction_activation="linear", sparse_flag=False,
-                 name="DGVD", **kwargs):
+                 spectral_norm=False, reconstruction_activation="linear",
+                 sparse_flag=False, name="DGVD", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -96,6 +98,7 @@ class GaussianDenseVariationalDecoder(BaseModel):
         self._activation = activation
         self._activity_regularizer = activity_regularizer
         self._kernel_regularizer = kernel_regularizer
+        self._spectral_norm = spectral_norm
         self._reconstruction_activation = reconstruction_activation
         self._sparse_flag = sparse_flag
 
@@ -138,6 +141,7 @@ class GaussianDenseVariationalDecoder(BaseModel):
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer,
+            "spectral_norm": self._spectral_norm,
             "reconstruction_activation": self._reconstruction_activation,
             "sparse_flag": self._sparse_flag
         })
@@ -156,8 +160,9 @@ class GaussianDenseVAE(BaseModel):
 
     def __init__(self, encoding_dims, latent_dim, input_shape=None,
                  activation="relu", activity_regularizer=None,
-                 kernel_regularizer=None, reconstruction_activation=None,
-                 discrepancy_loss="mmd", sparse_flag=False, name="VAE", **kwargs):
+                 kernel_regularizer=None, spectral_norm=False,
+                 reconstruction_activation="linear", discrepancy_loss="mmd",
+                 sparse_flag=False, name="VAE", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
@@ -167,6 +172,7 @@ class GaussianDenseVAE(BaseModel):
         self._activation = activation
         self._activity_regularizer = activity_regularizer
         self._kernel_regularizer = kernel_regularizer
+        self._spectral_norm = spectral_norm
         self._reconstruction_activation = reconstruction_activation
         self._discrepancy_loss = discrepancy_loss
         self._sparse_flag = sparse_flag
@@ -195,7 +201,8 @@ class GaussianDenseVAE(BaseModel):
             latent_dim=self._latent_dim,
             activation=self._activation,
             activity_regularizer=self._activity_regularizer,
-            kernel_regularizer=self._kernel_regularizer
+            kernel_regularizer=self._kernel_regularizer,
+            spectral_norm=self._spectral_norm
         )
 
         # Input layer and decoder can only be defined now if we
@@ -222,6 +229,7 @@ class GaussianDenseVAE(BaseModel):
             output_dim=self._input_shape[-1],
             activation=self._activation,
             activity_regularizer=self._activity_regularizer,
+            spectral_norm=self._spectral_norm,
             kernel_regularizer=self._kernel_regularizer,
             reconstruction_activation=self._reconstruction_activation
         )
@@ -299,6 +307,7 @@ class GaussianDenseVAE(BaseModel):
             "reconstruction_activation": self._reconstruction_activation,
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer,
+            "spectral_norm": self._spectral_norm,
             "discrepancy_loss": self._discrepancy_loss,
             "sparse_flag": self._sparse_flag
         })
