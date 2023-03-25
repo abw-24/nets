@@ -12,8 +12,9 @@ classifiers = ["Programming Language :: Python :: 3"]
 requires-python = ">=3.7"
 dependencies = [
     "tensorflow",
-    "pytest",
     "tensorflow-model-remediation",
     "tensorflow-addons",
-    "typeguard >= 2.13, < 3"
+    "tensorflow-recommenders",
+    "typeguard >= 2.13, < 3",
+    "pytest"
 ]
