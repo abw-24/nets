@@ -16,5 +16,7 @@ dependencies = [
     "tensorflow-addons",
     "tensorflow-recommenders",
     "typeguard >= 2.13, < 3",
+    "protobuf <= 3.20",
+    "tensorflow_datasets",
     "pytest"
 ]
