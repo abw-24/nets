@@ -6,18 +6,18 @@ import tensorflow as tf
 @tf.keras.utils.register_keras_serializable("nets")
 class StringEmbedding(tf.keras.layers.Layer):
 
-    def __init__(self, max_tokens, embedding_dim=32, name="StringEmbedding"):
+    def __init__(self, vocab, embedding_dim=32, name="StringEmbedding"):
 
         super().__init__(name=name)
 
-        self._max_tokens = max_tokens
+        self._vocab = vocab
         self._embedding_dim = embedding_dim
 
         self._lookup = tf.keras.layers.StringLookup(
-                vocabulary=max_tokens, mask_token=None
+                vocabulary=self._vocab, mask_token=None
         )
         self._embed = tf.keras.layers.Embedding(
-                max_tokens + 1, embedding_dim
+                len(self._vocab) + 1, embedding_dim
         )
 
     def call(self, inputs, training=False):
@@ -26,7 +26,7 @@ class StringEmbedding(tf.keras.layers.Layer):
     def get_config(self):
         config = super(StringEmbedding, self).get_config()
         config.update({
-            "max_tokens": self._max_tokens,
+            "vocab": self._vocab,
             "embedding_dim": self._embedding_dim
         })
         return config
