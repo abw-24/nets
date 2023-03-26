@@ -4,13 +4,13 @@ MLP.
 """
 
 import tensorflow as tf
-from nets.layers.dense import DenseBlock
 
-from nets.models.base import BaseModel
+from nets.layers.dense import DenseBlock
+from nets.models.base import BaseTFKerasModel
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class MLP(BaseModel):
+class MLP(BaseTFKerasModel):
 
     def __init__(self, hidden_dims, output_dim, input_shape=None,
                  activation="relu", output_activation="softmax",
