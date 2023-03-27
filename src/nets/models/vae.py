@@ -7,12 +7,12 @@ import tensorflow as tf
 from tensorflow_model_remediation.min_diff.losses import MMDLoss
 
 from nets.layers.dense import DenseBlock
-from nets.models.base import BaseModel
+from nets.models.base import BaseTFKerasModel
 from nets.layers.sampling import GaussianSampling
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class GaussianDenseVariationalEncoder(BaseModel):
+class GaussianDenseVariationalEncoder(BaseTFKerasModel):
 
     def __init__(self, encoding_dims, latent_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
@@ -29,7 +29,7 @@ class GaussianDenseVariationalEncoder(BaseModel):
         self._sparse_flag = sparse_flag
 
         self._input_layer = None
-        self._encoding_block = DenseBlock(
+        self._encode_block = DenseBlock(
                 hidden_dims=self._encoding_dims,
                 activation=self._activation,
                 activity_regularizer=self._activity_regularizer,
@@ -59,11 +59,11 @@ class GaussianDenseVariationalEncoder(BaseModel):
         :param inputs:
         :return:
         """
-        x = self._encoding_block(self._input_layer(inputs))
-        z_mean = self._latent_mean(x)
-        z_log_var = self._latent_log_var(x)
-        z = self._sampling((z_mean, z_log_var))
-        return z_mean, z_log_var, z
+        dense_block = self._encode_block.__call__(self._input_layer.__call__(inputs))
+        latent_mean = self._latent_mean.__call__(dense_block)
+        latent_log_var = self._latent_log_var.__call__(dense_block)
+        encoding = self._sampling.__call__((latent_mean, latent_log_var))
+        return latent_mean, latent_log_var, encoding
 
     def get_config(self):
         config = super(GaussianDenseVariationalEncoder, self).get_config()
@@ -84,7 +84,7 @@ class GaussianDenseVariationalEncoder(BaseModel):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class GaussianDenseVariationalDecoder(BaseModel):
+class GaussianDenseVariationalDecoder(BaseTFKerasModel):
 
     def __init__(self, decoding_dims, output_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
@@ -103,7 +103,7 @@ class GaussianDenseVariationalDecoder(BaseModel):
         self._sparse_flag = sparse_flag
 
         self._input_layer = None
-        self._decoding_block = DenseBlock(
+        self._decode_block = DenseBlock(
                 hidden_dims=self._decoding_dims,
                 activation=self._activation,
                 activity_regularizer=self._activity_regularizer
@@ -131,7 +131,8 @@ class GaussianDenseVariationalDecoder(BaseModel):
         :param inputs:
         :return:
         """
-        return self._output_layer(self._decoding_block(self._input_layer(inputs)))
+        decoded = self._decode_block.__call__(self._input_layer.__call__(inputs))
+        return self._output_layer.__call__(decoded)
 
     def get_config(self):
         config = super(GaussianDenseVariationalDecoder, self).get_config()
@@ -153,7 +154,7 @@ class GaussianDenseVariationalDecoder(BaseModel):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class GaussianDenseVAE(BaseModel):
+class GaussianDenseVAE(BaseTFKerasModel):
     """
     Variational autoencoder with dense encoding/decoding layers.
     """
