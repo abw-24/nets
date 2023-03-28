@@ -15,7 +15,7 @@ from nets.tests.utils import try_except_assertion_decorator, \
 class ModelIntegrationABC(ABC):
 
     """
-    Model integration test ABC (ABC of the ABC flavors) --
+    Model integration test ABC. Defines the following --
 
         - `setUpClass` should load and store data for model train testing
         - `tearDownClass` should clean up any data stored and remaining
@@ -86,7 +86,7 @@ class ModelIntegrationABC(ABC):
 
 class ModelIntegrationMixin(object):
     """
-    Common concrete classes for all integration mixin flavors.
+    Common concrete methods for all integration mixin flavors.
         - `tearDown` deletes any artifacts saved at `temp` (may need to be
         overwritten by certain children)
         - `test_build` is a generic test for creating the default model
@@ -124,7 +124,7 @@ class ModelIntegrationMixin(object):
 class RecommenderIntegrationMixin(ModelIntegrationMixin):
 
     """
-    ABC for recommender model testing. Implements several of the base ABCs
+    Mixin for recommender model testing. Implements several of the base ABCs
     abstract methods:
         - `setUpClass` reads and preps movielens data
         - `tearDownClass` deletes movielens data and any artifacts at temp path
@@ -193,7 +193,7 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
 class DenseIntegrationMixin(ModelIntegrationMixin):
 
     """
-    ABC for dense model testing. Implements several of the base ABCs
+    Mixin for dense model testing. Implements several of the base ABCs
     abstract methods:
         - `setUpClass` reads and preps mnist data
         - `tearDownClass` deletes mnist movielens data
