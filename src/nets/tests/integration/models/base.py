@@ -146,6 +146,7 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
             .map(lambda x: {
                 "movie_title": x["movie_title"],
                 "user_id": x["user_id"],
+                "user_rating": x["user_rating"]
             })
 
         shuffled_ratings = ratings.shuffle(10000, seed=1, reshuffle_each_iteration=False)
@@ -184,6 +185,7 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         self._embedding_dim = 32
         self._user_features = "user_id"
         self._item_features = "movie_title"
+        self._ratings_label = "user_rating"
         self._activation = "relu"
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
         self._task = tfrs.tasks.Retrieval()
