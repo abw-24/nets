@@ -7,10 +7,7 @@ from nets.layers.recommender import StringEmbedding
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerMixin(BaseTFRecommenderModel):
-
-    def __init__(self, name="DenseBlockEmbeddingModel"):
-        super().__init__(name=name)
+class TwoTowerMixin(object):
 
     @property
     def user_features(self):
@@ -46,7 +43,7 @@ class TwoTowerMixin(BaseTFRecommenderModel):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRetrieval(TwoTowerMixin):
+class TwoTowerRetrieval(BaseTFRecommenderModel, TwoTowerMixin):
     """
     The basic two tower model takes pre-defined and/or pre-trained models
     for both the user and item models.
@@ -92,7 +89,7 @@ class SimpleEmbeddingTwoTowerRetrieval(TwoTowerRetrieval):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRatingsRanking(TwoTowerMixin):
+class TwoTowerRatingsRanking(BaseTFRecommenderModel, TwoTowerMixin):
 
     """
     The fine-tuning two tower model takes pre-defined and pre-trained models
@@ -134,3 +131,11 @@ class TwoTowerRatingsRanking(TwoTowerMixin):
         )
         rating_predictions = self.__call__(feature_tuple)
         return self.task(labels=labels, predictions=rating_predictions)
+
+    @property
+    def ratings_model(self):
+        return self._ratings_model
+
+    @property
+    def ratings_label(self):
+        return self._ratings_label
