@@ -45,11 +45,11 @@ class TwoTowerMixin(object):
 @tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerRetrieval(BaseTFRecommenderModel, TwoTowerMixin):
     """
-    The basic two tower model takes pre-defined and/or pre-trained models
-    for both the user and item models.
+    The basic two tower retrieval model takes pre-defined (and possibly
+    pre-trained) models for both the user and item.
     """
     def __init__(self, user_model, item_model, user_features,
-                 item_features, name="SimpleEmbeddedTwoTower"):
+                 item_features, name="TwoTowerRetrieval"):
 
         super().__init__(name=name)
 
@@ -65,7 +65,7 @@ class TwoTowerRetrieval(BaseTFRecommenderModel, TwoTowerMixin):
 class SimpleEmbeddingTwoTowerRetrieval(TwoTowerRetrieval):
 
     def __init__(self, embedding_dim, users, items, user_features,
-                 item_features, name="SimpleEmbeddedTwoTower"):
+                 item_features, name="SimpleEmbeddedTwoTowerRetrieval"):
 
         self._embedding_dim = embedding_dim
         self._users = users
@@ -92,8 +92,8 @@ class SimpleEmbeddingTwoTowerRetrieval(TwoTowerRetrieval):
 class TwoTowerRatingsRanking(BaseTFRecommenderModel, TwoTowerMixin):
 
     """
-    The fine-tuning two tower model takes pre-defined and pre-trained models
-    for both the user and item models.
+    The two tower ratings ranking model requires a ratings model in addition
+    to the user and item models (all pre-defined, and possible pre-trained).
     """
     def __init__(self, ratings_model, user_model, item_model, user_features,
                  item_features, ratings_label, name="TwoTowerRatingsRanking"):
