@@ -6,7 +6,6 @@ from nets.models.base import BaseTFRecommenderModel
 from nets.layers.recommender import StringEmbedding
 
 
-@tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerMixin(object):
 
     @property
