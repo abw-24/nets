@@ -47,7 +47,6 @@ class DeepHashEmbedding(BaseTFKerasModel):
     def get_config(self):
         config = super(DeepHashEmbedding, self).get_config()
         config.update({
-            "embedding_field": self._embedding_field,
             "hash_bins": self._hash_bins,
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim
