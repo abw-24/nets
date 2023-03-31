@@ -161,9 +161,6 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
             .map(lambda x: x["user_id"])\
             .batch(100)
 
-        cls._items = np.unique(np.concatenate(list(cls._movies)))
-        cls._users = np.unique(np.concatenate(list(cls._user_ids)))
-
     @classmethod
     def tearDownClass(cls):
         """
@@ -172,8 +169,6 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         del cls._train
         del cls._movies
         del cls._user_ids
-        del cls._users
-        del cls._items
 
         if os.path.exists(cls.temp):
             shutil.rmtree(cls.temp)
