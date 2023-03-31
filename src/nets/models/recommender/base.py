@@ -26,5 +26,3 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
     @property
     def item_model(self):
         return self._item_model
-
-
