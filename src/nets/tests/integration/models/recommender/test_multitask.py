@@ -1,21 +1,19 @@
 
 
 import tensorflow as tf
-import tensorflow_recommenders as tfrs
 import os
 from unittest import TestCase as TC
 
-from nets.models.recommender.ranking import TwoTowerRatingsRanking
+from nets.models.recommender.multitask import TwoTowerMultiTask
 from nets.layers.recommender import HashEmbedding
 from nets.models.mlp import MLP
 from nets.utils import get_obj
 
-from nets.tests.utils import try_except_assertion_decorator
 from nets.tests.integration.models.base import ModelIntegrationABC, \
     RecommenderIntegrationMixin
 
 
-class TestTwoTowerRatingsRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
+class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
     """
     Fine tuning tester. For simplicity, here we simply create
     """
@@ -37,16 +35,16 @@ class TestTwoTowerRatingsRanking(RecommenderIntegrationMixin, ModelIntegrationAB
                 spectral_norm=True
         )
 
-        model = TwoTowerRatingsRanking(
+        model = TwoTowerMultiTask(
                 ratings_model=ratings_model,
                 user_model=user_model,
                 item_model=item_model,
                 user_features=self._user_features,
                 item_features=self._item_features,
                 ratings_label=self._ratings_label,
+                balance=0.5
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)
         )
         return model
-
