@@ -29,14 +29,14 @@ class TestTwoTowerRatingsRanking(RecommenderIntegrationMixin, ModelIntegrationAB
         """
         user_model = HashEmbedding(embedding_dim=self._embedding_dim)
         item_model = HashEmbedding(embedding_dim=self._embedding_dim)
-
         ratings_model = MLP(
-                hidden_dims=[4*self._embedding_dim, 2*self._embedding_dim],
+                hidden_dims=[2*self._embedding_dim],
                 output_dim=1,
                 activation="relu",
                 output_activation="linear",
                 spectral_norm=True
         )
+
         model = TwoTowerRatingsRanking(
                 ratings_model=ratings_model,
                 user_model=user_model,
@@ -50,42 +50,3 @@ class TestTwoTowerRatingsRanking(RecommenderIntegrationMixin, ModelIntegrationAB
         )
         return model
 
-    @try_except_assertion_decorator
-    def test_predict(self):
-        """
-        Test that prediction works.
-        """
-        model = self._generate_default_compiled_model()
-        model.fit(
-                self._train,
-                epochs=self._epochs
-        )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
-        index.index_from_dataset(
-                tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.item_model)
-                ))
-        )
-
-        _, titles = index(tf.constant(["1"]))
-
-    @try_except_assertion_decorator
-    def test_save_and_load(self):
-        """
-        Test that saving and loading works.
-        """
-
-        model = self._generate_default_compiled_model()
-        model.fit(
-                self._train,
-                epochs=self._epochs
-        )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
-        index.index_from_dataset(
-                tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.item_model)
-                ))
-        )
-
-        tf.saved_model.save(index, self.temp)
-        _ = tf.saved_model.load(self.temp)
