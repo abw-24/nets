@@ -130,6 +130,10 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         - `tearDownClass` deletes movielens data and any artifacts at temp path
         - `setUp` creates fresh default params for each test method (may need
         to be ovewritten for certain models)
+        - `test_predict` uses the default model to test if prediction works
+        as expected
+        - `test_save_and_load` uses the default model to test if saving/loading
+        works as expected
     """
 
     @classmethod
@@ -185,6 +189,46 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
         self._task = tfrs.tasks.Retrieval()
         self._epochs = 1
+
+    @try_except_assertion_decorator
+    def test_predict(self):
+        """
+        Test that prediction works.
+        """
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train,
+                epochs=self._epochs
+        )
+        index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
+        index.index_from_dataset(
+                tf.data.Dataset.zip((
+                    self._movies, self._movies.map(model.item_model)
+                ))
+        )
+
+        _, titles = index(tf.constant(["1"]))
+
+    @try_except_assertion_decorator
+    def test_save_and_load(self):
+        """
+        Test that saving and loading works.
+        """
+
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train,
+                epochs=self._epochs
+        )
+        index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
+        index.index_from_dataset(
+                tf.data.Dataset.zip((
+                    self._movies, self._movies.map(model.item_model)
+                ))
+        )
+
+        tf.saved_model.save(index, self.temp)
+        _ = tf.saved_model.load(self.temp)
 
 
 class DenseIntegrationMixin(ModelIntegrationMixin):
