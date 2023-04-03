@@ -12,12 +12,12 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
         super().__init__(name=name)
 
     @property
-    def user_features(self):
-        return self._user_features
+    def user_id(self):
+        return self._user_id
 
     @property
-    def item_features(self):
-        return self._item_features
+    def item_id(self):
+        return self._item_id
 
     @property
     def user_model(self):
