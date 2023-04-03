@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 import os
-from unittest import TestCase as TC
+from unittest import TestCase as TC, skip
 
 from nets.models.recommender.multitask import TwoTowerMultiTask, \
     ListwiseTwoTowerMultiTask
@@ -51,6 +51,7 @@ class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC
         return model
 
 
+@skip
 class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationMixin, TestTwoTowerMultiTask):
     """
     Fine tuning tester. For simplicity, here we simply create

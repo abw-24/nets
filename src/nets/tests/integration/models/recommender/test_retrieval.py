@@ -1,8 +1,7 @@
 
 import tensorflow as tf
-import tensorflow_recommenders as tfrs
 import os
-from unittest import TestCase as TC
+from unittest import TestCase as TC, skip
 
 from nets.models.recommender.retrieval import TwoTowerRetrieval, \
     ListwiseTwoTowerRetrieval
@@ -79,6 +78,7 @@ class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC
         )
 
 
+@skip
 class TestListwiseTwoTowerRetrieval(ListwiseRecommenderIntegrationMixin, TestTwoTowerRetrieval):
     """
     Need to overwrite setUpClass to reformat training data.

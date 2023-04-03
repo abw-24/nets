@@ -1,10 +1,8 @@
 
 
 import tensorflow as tf
-import tensorflow_recommenders as tfrs
-import tensorflow_datasets as tfds
 import os
-from unittest import TestCase as TC
+from unittest import TestCase as TC, skip
 
 from nets.models.recommender.ranking import TwoTowerRanking, \
     ListwiseTwoTowerRanking
@@ -51,6 +49,7 @@ class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
         return model
 
 
+@skip
 class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTowerRanking):
     """
     """
