@@ -11,11 +11,11 @@ readme = "README.md"
 classifiers = ["Programming Language :: Python :: 3"]
 requires-python = ">=3.7"
 dependencies = [
-    "tensorflow >= 2.12",
+    "tensorflow",
     "tensorflow-model-remediation",
     "tensorflow-addons",
     "tensorflow-recommenders",
-    "typeguard >= 2.13, < 3",
     "tensorflow_datasets",
+    "typeguard >= 2.13, < 3",
     "pytest"
 ]
