@@ -16,6 +16,7 @@ dependencies = [
     "tensorflow-addons",
     "tensorflow-recommenders",
     "tensorflow_datasets",
+    "tensorflow_ranking",
     "typeguard >= 2.13, < 3",
     "pytest"
 ]
