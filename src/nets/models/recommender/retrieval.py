@@ -10,27 +10,24 @@ from .base import TwoTowerABC
 class TwoTowerRetrieval(TwoTowerABC):
     """
     """
-    def __init__(self, user_model, item_model, user_id,
-                 item_id, name="TwoTowerRetrieval"):
+    def __init__(self, query_model, candidate_model, query_id,
+                 candidate_id, name="TwoTowerRetrieval"):
 
         super().__init__(name=name)
 
         self._task = tfrs.tasks.Retrieval()
 
-        self._user_model = user_model
-        self._item_model = item_model
-        self._user_id = user_id
-        self._item_id = item_id
+        self._query_model = query_model
+        self._candidate_model = candidate_model
+        self._query_id = query_id
+        self._candidate_id = candidate_id
 
     def call(self, inputs):
         """
-
-        :param inputs:
-        :return:
         """
-        user_embeddings = self._user_model(inputs[self._user_id])
-        item_embeddings = self._item_model(inputs[self._item_id])
-        return user_embeddings, item_embeddings
+        query_embeddings = self._query_model(inputs[self._query_id])
+        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
+        return query_embeddings, candidate_embeddings
 
     def compute_loss(self, features, training=False):
         """
@@ -39,8 +36,8 @@ class TwoTowerRetrieval(TwoTowerABC):
         :param training: Training flag
         :return: Loss dictionary
         """
-        user_embedding, item_embedding = self.__call__(features)
-        return self._task(user_embedding, item_embedding)
+        query_embedding, candidate_embedding = self.__call__(features)
+        return self._task(query_embedding, candidate_embedding)
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -48,14 +45,14 @@ class ListwiseTwoTowerRetrieval(TwoTowerRetrieval):
 
     """
     """
-    def __init__(self, user_model, item_model, user_id,
-                 item_id, name="ListwiseTwoTowerRetrieval"):
+    def __init__(self, query_model, candidate_model, query_id,
+                 candidate_id, name="ListwiseTwoTowerRetrieval"):
 
         super().__init__(
-                user_model=user_model,
-                item_model=item_model,
-                user_id=user_id,
-                item_id=item_id,
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=query_id,
+                candidate_id=candidate_id,
                 name=name
         )
 
@@ -64,19 +61,20 @@ class ListwiseTwoTowerRetrieval(TwoTowerRetrieval):
         )
 
     def call(self, inputs):
+        """
+        """
+        query_embedding = self._query_model(inputs[self._query_id])
+        candidate_embedding = self._candidate_model(inputs[self._candidate_id])
 
-        user_embedding = self._user_model(inputs[self._user_id])
-        item_embedding = self._item_model(inputs[self._item_id])
-
-        list_length = inputs[self._item_id].shape[1]
-        user_embedding_vec = tf.repeat(
-                tf.expand_dims(user_embedding, 1), [list_length], axis=1
+        list_length = inputs[self._candidate_id].shape[1]
+        query_embedding_vec = tf.repeat(
+                tf.expand_dims(query_embedding, 1), [list_length], axis=1
         )
 
-        return (user_embedding_vec, item_embedding)
+        return (query_embedding_vec, candidate_embedding)
 
     def compute_loss(self, features, training=False):
-
-        user_embedding, item_embedding = self.__call__(features)
-
-        return self._task(user_embedding, item_embedding)
+        """
+        """
+        query_embedding, candidate_embedding = self.__call__(features)
+        return self._task(query_embedding, candidate_embedding)

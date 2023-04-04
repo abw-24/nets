@@ -25,14 +25,14 @@ class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC
         """
         Instantiate and return a retrieval with the default params.
         """
-        user_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
 
         model = TwoTowerRetrieval(
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)
@@ -43,14 +43,14 @@ class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC
         """
         Instantiate and return a deep retrieval model.
         """
-        user_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
 
         model = TwoTowerRetrieval(
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)
@@ -80,10 +80,6 @@ class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC
 
 @skip
 class TestListwiseTwoTowerRetrieval(ListwiseRecommenderIntegrationMixin, TestTwoTowerRetrieval):
-    """
-    Need to overwrite setUpClass to reformat training data.
-    Otherwise identical to regular two tower testing.
-    """
 
     temp = os.path.join(os.getcwd(), "twotower-tmp-model")
 
@@ -91,14 +87,14 @@ class TestListwiseTwoTowerRetrieval(ListwiseRecommenderIntegrationMixin, TestTwo
         """
         Instantiate and return a retrieval with the default params.
         """
-        user_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
 
         model = ListwiseTwoTowerRetrieval(
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)
@@ -109,14 +105,14 @@ class TestListwiseTwoTowerRetrieval(ListwiseRecommenderIntegrationMixin, TestTwo
         """
         Instantiate and return a deep retrieval model.
         """
-        user_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
 
         model = ListwiseTwoTowerRetrieval(
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)

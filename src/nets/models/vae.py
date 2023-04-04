@@ -45,7 +45,7 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
         Build portion of model graph that depends on the input shape.
         Also make a call to the parent's build method.
 
-        :param input_shape: Dimension of input tensor (not including batch dim)
+        :param input_shape: Dimension of input tensor
         """
 
         self._input_layer = tf.keras.layers.InputLayer(
@@ -54,11 +54,7 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
         super().build(input_shape)
 
     def call(self, inputs, training=False):
-        """
 
-        :param inputs:
-        :return:
-        """
         dense_block = self._encode_block.__call__(self._input_layer.__call__(inputs))
         latent_mean = self._latent_mean.__call__(dense_block)
         latent_log_var = self._latent_log_var.__call__(dense_block)
@@ -117,7 +113,7 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
         Build portion of model graph that depends on the input shape.
         Also make a call to the parent's build method.
 
-        :param input_shape: Dimension of input tensor (not including batch dim)
+        :param input_shape: Dimension of input tensor
         """
 
         self._input_layer = tf.keras.layers.InputLayer(
@@ -126,11 +122,7 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
         super().build(input_shape)
 
     def call(self, inputs, training=False):
-        """
 
-        :param inputs:
-        :return:
-        """
         decoded = self._decode_block.__call__(self._input_layer.__call__(inputs))
         return self._output_layer.__call__(decoded)
 
@@ -241,8 +233,6 @@ class GaussianDenseVAE(BaseTFKerasModel):
     def train_step(self, data):
         """
         Overrides parent `train_step` to implement custom loss handling.
-        :param data:
-        :return:
         """
 
         x, y = data
@@ -284,8 +274,6 @@ class GaussianDenseVAE(BaseTFKerasModel):
     def encode(self, inputs):
         """
         Return sampled latent values.
-        :param inputs:
-        :return:
         """
         _, _, latent = self._encoder.__call__(inputs)
         return latent
@@ -293,14 +281,12 @@ class GaussianDenseVAE(BaseTFKerasModel):
     def call(self, inputs, training=False):
         """
         Return reconstructed inputs.
-        :param inputs:
-        :return:
         """
         _, _, latent = self._encoder.__call__(inputs)
         return self._decoder.__call__(latent)
 
     def get_config(self):
-        config = super(GaussianDenseVAE, self).get_config()
+        config = super().get_config()
         config.update({
             "encoding_dims": self._encoding_dims,
             "latent_dim": self._latent_dim,

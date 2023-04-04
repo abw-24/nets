@@ -51,7 +51,7 @@ class HashEmbedding(tf.keras.layers.Layer):
                 num_bins=self._hash_bins
         )
         self._embed = tf.keras.layers.Embedding(
-                self._hash_bins + 1, embedding_dim
+                self._hash_bins, embedding_dim
         )
 
     def call(self, inputs, training=False):

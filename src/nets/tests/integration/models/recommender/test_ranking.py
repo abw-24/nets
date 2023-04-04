@@ -25,8 +25,8 @@ class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer defined in setUp.
         """
-        user_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
         target_model = MLP(
                 hidden_dims=[2*self._embedding_dim],
                 output_dim=1,
@@ -37,10 +37,10 @@ class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
 
         model = TwoTowerRanking(
                 target_model=target_model,
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id,
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id,
                 rank_target=self._rank_target,
         )
         model.compile(
@@ -61,8 +61,8 @@ class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTo
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer defined in setUp.
         """
-        user_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
         target_model = MLP(
                 hidden_dims=[2*self._embedding_dim],
                 output_dim=1,
@@ -73,10 +73,10 @@ class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTo
 
         model = ListwiseTwoTowerRanking(
                 target_model=target_model,
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id,
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id,
                 rank_target=self._rank_target,
         )
         model.compile(
