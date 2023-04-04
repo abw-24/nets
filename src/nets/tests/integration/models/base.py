@@ -1,6 +1,5 @@
 
 from abc import abstractmethod, ABC
-import numpy as np
 import os
 import shutil
 
@@ -182,8 +181,8 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         Create fresh default params for each test.
         """
         self._embedding_dim = 32
-        self._user_id = "user_id"
-        self._item_id = "movie_title"
+        self._query_id = "user_id"
+        self._candidate_id = "movie_title"
         self._rank_target = "user_rating"
         self._activation = "relu"
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
@@ -200,10 +199,10 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
                 self._train,
                 epochs=self._epochs
         )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
+        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
         index.index_from_dataset(
                 tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.item_model)
+                    self._movies, self._movies.map(model.candidate_model)
                 ))
         )
 
@@ -220,10 +219,10 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
                 self._train,
                 epochs=self._epochs
         )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
+        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
         index.index_from_dataset(
                 tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.item_model)
+                    self._movies, self._movies.map(model.candidate_model)
                 ))
         )
 

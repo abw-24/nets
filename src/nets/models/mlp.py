@@ -46,24 +46,13 @@ class MLP(BaseTFKerasModel):
             self.build(self._input_shape)
 
     def build(self, input_shape):
-        """
 
-        :param input_shape:
-        :return:
-        """
         self._input_layer = tf.keras.layers.InputLayer(
                 input_shape=(input_shape[-1],)
         )
         super().build(input_shape)
 
     def train_step(self, data):
-        """
-        Overrides parent method to train on a batch of data.
-
-        :param data: (x, y) tuple, where x and y are batches of inputs and
-            outputs (tuple)
-        :return: Tracked metrics (dict)
-        """
 
         x, y = data
         # Use the graph for the forward pass and compute the compiled loss
@@ -84,7 +73,7 @@ class MLP(BaseTFKerasModel):
         return self._output_layer(self._dense_block(self._input_layer(inputs)))
 
     def get_config(self):
-        config = super(MLP, self).get_config()
+        config = super().get_config()
         config.update({
             "hidden_dims": self._hidden_dims,
             "output_dim": self._output_dim,

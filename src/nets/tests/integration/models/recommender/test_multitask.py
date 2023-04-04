@@ -16,7 +16,6 @@ from nets.tests.integration.models.base import ModelIntegrationABC, \
 
 class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
     """
-    Fine tuning tester. For simplicity, here we simply create
     """
 
     temp = os.path.join(os.getcwd(), "multitask-tmp-model")
@@ -26,8 +25,8 @@ class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer defined in setUp.
         """
-        user_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
         target_model = MLP(
                 hidden_dims=[2*self._embedding_dim],
                 output_dim=1,
@@ -38,10 +37,10 @@ class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC
 
         model = TwoTowerMultiTask(
                 target_model=target_model,
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id,
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id,
                 rank_target=self._rank_target,
                 balance=0.5
         )
@@ -54,7 +53,6 @@ class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC
 @skip
 class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationMixin, TestTwoTowerMultiTask):
     """
-    Fine tuning tester. For simplicity, here we simply create
     """
 
     temp = os.path.join(os.getcwd(), "multitask-tmp-model")
@@ -64,8 +62,8 @@ class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationMixin, TestTwo
         Instantiate and return a model with the default params and compiled
         with the default loss and optimizer defined in setUp.
         """
-        user_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        item_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
+        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
 
         target_model = MLP(
                 hidden_dims=[2*self._embedding_dim],
@@ -77,10 +75,10 @@ class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationMixin, TestTwo
 
         model = ListwiseTwoTowerMultiTask(
                 target_model=target_model,
-                user_model=user_model,
-                item_model=item_model,
-                user_id=self._user_id,
-                item_id=self._item_id,
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=self._query_id,
+                candidate_id=self._candidate_id,
                 rank_target=self._rank_target,
                 balance=0.5
         )
