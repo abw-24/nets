@@ -1,6 +1,5 @@
 
 from abc import abstractmethod, ABC
-import numpy as np
 import os
 import shutil
 
@@ -130,6 +129,10 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         - `tearDownClass` deletes movielens data and any artifacts at temp path
         - `setUp` creates fresh default params for each test method (may need
         to be ovewritten for certain models)
+        - `test_predict` uses the default model to test if prediction works
+        as expected
+        - `test_save_and_load` uses the default model to test if saving/loading
+        works as expected
     """
 
     @classmethod
@@ -178,13 +181,86 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         Create fresh default params for each test.
         """
         self._embedding_dim = 32
-        self._user_features = "user_id"
-        self._item_features = "movie_title"
-        self._ratings_label = "user_rating"
+        self._query_id = "user_id"
+        self._candidate_id = "movie_title"
+        self._rank_target = "user_rating"
         self._activation = "relu"
         self._optimizer = {"Adam": {"learning_rate": 0.001}}
         self._task = tfrs.tasks.Retrieval()
         self._epochs = 1
+
+    @try_except_assertion_decorator
+    def test_predict(self):
+        """
+        Test that prediction works.
+        """
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train,
+                epochs=self._epochs
+        )
+        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
+        index.index_from_dataset(
+                tf.data.Dataset.zip((
+                    self._movies, self._movies.map(model.candidate_model)
+                ))
+        )
+
+        _, titles = index(tf.constant(["1"]))
+
+    @try_except_assertion_decorator
+    def test_save_and_load(self):
+        """
+        Test that saving and loading works.
+        """
+
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train,
+                epochs=self._epochs
+        )
+        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
+        index.index_from_dataset(
+                tf.data.Dataset.zip((
+                    self._movies, self._movies.map(model.candidate_model)
+                ))
+        )
+
+        tf.saved_model.save(index, self.temp)
+        _ = tf.saved_model.load(self.temp)
+
+
+class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
+
+    @classmethod
+    def setUpClass(cls):
+        tf.random.set_seed(1)
+
+        ratings = tfds.load("movielens/100k-ratings", split="train")
+        movies = tfds.load("movielens/100k-movies", split="train")
+
+        ratings = ratings\
+            .map(lambda x: {
+                "movie_title": x["movie_title"],
+                "user_id": x["user_id"],
+                "user_rating": x["user_rating"]
+            })\
+            .take(10000)
+
+        cls._train = tfrs.examples.movielens.sample_listwise(
+            ratings,
+            num_list_per_user=5,
+            num_examples_per_list=5,
+            seed=1
+        )
+
+        cls._movies = movies\
+            .map(lambda x: x["movie_title"])\
+            .batch(100)
+
+        cls._user_ids = ratings\
+            .map(lambda x: x["user_id"])\
+            .batch(100)
 
 
 class DenseIntegrationMixin(ModelIntegrationMixin):

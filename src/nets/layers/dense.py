@@ -39,14 +39,9 @@ class DenseBlock(tf.keras.layers.Layer):
                 self._block_layers.append(dense)
 
     def call(self, inputs, training=False):
-        """
-
-        :param inputs:
-        :return:
-        """
         outputs = inputs
         for layer in self._block_layers:
-            outputs = layer(outputs)
+            outputs = layer.__call__(outputs)
         return outputs
 
     def get_config(self):

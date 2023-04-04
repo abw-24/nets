@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
+import tensorflow_ranking as tfr
 
 from .base import TwoTowerABC
 
@@ -8,20 +9,25 @@ from .base import TwoTowerABC
 @tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerRetrieval(TwoTowerABC):
     """
-    The basic two tower model takes pre-defined and/or pre-trained models
-    for both the user and item models.
     """
-    def __init__(self, user_model, item_model, user_features,
-                 item_features, name="TwoTowerRetrieval"):
+    def __init__(self, query_model, candidate_model, query_id,
+                 candidate_id, name="TwoTowerRetrieval"):
 
         super().__init__(name=name)
 
         self._task = tfrs.tasks.Retrieval()
 
-        self._user_model = user_model
-        self._item_model = item_model
-        self._user_features = user_features
-        self._item_features = item_features
+        self._query_model = query_model
+        self._candidate_model = candidate_model
+        self._query_id = query_id
+        self._candidate_id = candidate_id
+
+    def call(self, inputs):
+        """
+        """
+        query_embeddings = self._query_model(inputs[self._query_id])
+        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
+        return query_embeddings, candidate_embeddings
 
     def compute_loss(self, features, training=False):
         """
@@ -30,7 +36,45 @@ class TwoTowerRetrieval(TwoTowerABC):
         :param training: Training flag
         :return: Loss dictionary
         """
-        user_embeddings = self.user_model(features[self.user_features])
-        item_embeddings = self.item_model(features[self.item_features])
+        query_embedding, candidate_embedding = self.__call__(features)
+        return self._task(query_embedding, candidate_embedding)
 
-        return self._task(user_embeddings, item_embeddings)
+
+@tf.keras.utils.register_keras_serializable("nets")
+class ListwiseTwoTowerRetrieval(TwoTowerRetrieval):
+
+    """
+    """
+    def __init__(self, query_model, candidate_model, query_id,
+                 candidate_id, name="ListwiseTwoTowerRetrieval"):
+
+        super().__init__(
+                query_model=query_model,
+                candidate_model=candidate_model,
+                query_id=query_id,
+                candidate_id=candidate_id,
+                name=name
+        )
+
+        self._task = tfrs.tasks.Retrieval(
+                loss = tfr.keras.losses.ListMLELoss()
+        )
+
+    def call(self, inputs):
+        """
+        """
+        query_embedding = self._query_model(inputs[self._query_id])
+        candidate_embedding = self._candidate_model(inputs[self._candidate_id])
+
+        list_length = inputs[self._candidate_id].shape[1]
+        query_embedding_vec = tf.repeat(
+                tf.expand_dims(query_embedding, 1), [list_length], axis=1
+        )
+
+        return (query_embedding_vec, candidate_embedding)
+
+    def compute_loss(self, features, training=False):
+        """
+        """
+        query_embedding, candidate_embedding = self.__call__(features)
+        return self._task(query_embedding, candidate_embedding)

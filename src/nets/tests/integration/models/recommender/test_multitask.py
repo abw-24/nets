@@ -4,8 +4,8 @@ import tensorflow as tf
 import os
 from unittest import TestCase as TC, skip
 
-from nets.models.recommender.ranking import TwoTowerRanking, \
-    ListwiseTwoTowerRanking
+from nets.models.recommender.multitask import TwoTowerMultiTask, \
+    ListwiseTwoTowerMultiTask
 from nets.layers.recommender import HashEmbedding
 from nets.models.mlp import MLP
 from nets.utils import get_obj
@@ -14,11 +14,11 @@ from nets.tests.integration.models.base import ModelIntegrationABC, \
     RecommenderIntegrationMixin, ListwiseRecommenderIntegrationMixin
 
 
-class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
+class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
     """
     """
 
-    temp = os.path.join(os.getcwd(), "rankingtwotower-tmp-model")
+    temp = os.path.join(os.getcwd(), "multitask-tmp-model")
 
     def _generate_default_compiled_model(self):
         """
@@ -35,13 +35,14 @@ class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
                 spectral_norm=True
         )
 
-        model = TwoTowerRanking(
+        model = TwoTowerMultiTask(
                 target_model=target_model,
                 query_model=query_model,
                 candidate_model=candidate_model,
                 query_id=self._query_id,
                 candidate_id=self._candidate_id,
                 rank_target=self._rank_target,
+                balance=0.5
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)
@@ -50,11 +51,11 @@ class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
 
 
 @skip
-class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTowerRanking):
+class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationMixin, TestTwoTowerMultiTask):
     """
     """
 
-    temp = os.path.join(os.getcwd(), "rankingtwotower-tmp-model")
+    temp = os.path.join(os.getcwd(), "multitask-tmp-model")
 
     def _generate_default_compiled_model(self):
         """
@@ -63,6 +64,7 @@ class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTo
         """
         query_model = HashEmbedding(embedding_dim=self._embedding_dim)
         candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
+
         target_model = MLP(
                 hidden_dims=[2*self._embedding_dim],
                 output_dim=1,
@@ -71,13 +73,14 @@ class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTo
                 spectral_norm=True
         )
 
-        model = ListwiseTwoTowerRanking(
+        model = ListwiseTwoTowerMultiTask(
                 target_model=target_model,
                 query_model=query_model,
                 candidate_model=candidate_model,
                 query_id=self._query_id,
                 candidate_id=self._candidate_id,
                 rank_target=self._rank_target,
+                balance=0.5
         )
         model.compile(
             optimizer=get_obj(tf.keras.optimizers, self._optimizer)

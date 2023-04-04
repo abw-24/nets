@@ -144,7 +144,7 @@ class TestVAE(DenseIntegrationMixin, ModelIntegrationABC, TC):
     @try_except_assertion_decorator
     def test_save_and_load_decoder(self):
         """
-        Test that saving and loading works. Here, we test the decoder submodel
+        Test that saving and loading works. Here we test the `decoder` submodel
         to complement the `encoder` submodel test above.
         """
 

@@ -106,12 +106,13 @@ class ResidualLayer(tf.keras.layers.Layer):
 
     def __init__(self, filters, activation="relu", **kwargs):
         """
-        Single 2D convolutional block (of configurable depth) plus a residual connection
-        at the end. Assumes "same" padding, so residual connection dims will match.
+        Single 2D convolutional block (of configurable depth) plus a residual
+        connection at the end. Assumes "same" padding, so residual connection
+         dims will match.
 
-        :param filters: List of integers specifying the number of feature filters in
-            each layer. The length implicitly specifies the number of
-            convolution layers in the block.
+        :param filters: List of integers specifying the number of feature filters
+        in each layer. The length implicitly specifies the number of convolution
+        layers in the block.
         :param activation: Activation function (str)
         """
 
@@ -124,13 +125,13 @@ class ResidualLayer(tf.keras.layers.Layer):
 
     def call(self, inputs, training=False):
         x = inputs
-        conv_out = self._conv_layer(x, training=training)
-        res_out = self._add_op([x, conv_out])
-        output = self._activation_op(res_out)
+        conv_out = self._conv_layer.__call__(x, training=training)
+        res_out = self._add_op.__call__([x, conv_out])
+        output = self._activation_op.__call__(res_out)
         return output
 
     def get_config(self):
-        config = super(ResidualLayer, self).get_config()
+        config = super().get_config()
         config.update({
             "filters": self._filters,
             "activation": self._activation,
@@ -149,13 +150,13 @@ class MultiPathResidualLayer(tf.keras.layers.Layer):
         """
         Multiple 2D convolutional block paths (of configurable depth) merged
         plus a residual connection. Assumes "same" padding, so residual
-        connection dims will match. The number of filters is altered (divided by a factor
-        of 2) in secondary paths to encourage information flow.
+        connection dims will match. The number of filters is altered (divided
+        by a factor of 2) in secondary paths to encourage information flow.
 
         :param n_paths: Number of convolutional paths
-        :param filters: List of integers specifying the number of feature filters in
-            each conv layer (for each path). The length implicitly specifies the number of
-            convolution layers in the block.
+        :param filters: List of integers specifying the number of feature
+        filters in each conv layer (for each path). The length implicitly
+        specifies the number of convolution layers in the block.
         :param activation: Activation function (str)
         """
 
@@ -190,15 +191,15 @@ class MultiPathResidualLayer(tf.keras.layers.Layer):
         x = inputs
         path_outputs = []
         for i in range(self._n_paths):
-            path_out = self._conv_paths[str(i)](x, training=training)
+            path_out = self._conv_paths[str(i)].__call__(x, training=training)
             path_outputs.append(path_out)
-        merged = self._add_op(path_outputs)
-        output = self._add_op([x, merged])
+        merged = self._add_op.__call__(path_outputs)
+        output = self._add_op.__call__([x, merged])
         output = self._activation_op(output)
         return output
 
     def get_config(self):
-        config = super(MultiPathResidualLayer, self).get_config()
+        config = super().get_config()
         config.update({
             "n_paths": self._n_paths,
             "filters": self._filters,
