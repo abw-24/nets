@@ -36,18 +36,18 @@ class TwoTowerMultiTask(TwoTowerABC):
 
     def call(self, inputs):
 
-        query_embedding = self._query_model(inputs[self._query_id])
-        candidate_embedding = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model(inputs[self._query_id])
+        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
         rank_prediction = self._target_model.__call__(tf.concat(
-                values=[query_embedding, candidate_embedding], axis=1
+                values=[query_embeddings, candidate_embeddings], axis=1
         ))
 
-        return (query_embedding, candidate_embedding, rank_prediction)
+        return (query_embeddings, candidate_embeddings, rank_prediction)
 
     @tf.function
     def compute_loss(self, features, training=False):
 
-        labels = features.pop(self._rank_target)
+        labels = features[self._rank_target]
         query_embeddings, candidate_embeddings, scores = self.__call__(features)
 
         retrieval_loss = self._retrieval_task.__call__(
@@ -113,7 +113,7 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
     @tf.function
     def compute_loss(self, features, training=False):
 
-        labels = features.pop(self._rank_target)
+        labels = features[self._rank_target]
         query_embeddings, candidate_embeddings, scores = self.__call__(features)
 
         retrieval_loss = self._retrieval_task.__call__(

@@ -37,10 +37,10 @@ class TwoTowerRetrieval(TwoTowerABC):
         :param training: Training flag
         :return: Loss dictionary
         """
-        query_embedding, candidate_embedding = self.__call__(features)
+        query_embeddings, candidate_embeddings = self.__call__(features)
         return self._task.__call__(
-                query_embeddings=query_embedding,
-                candidate_embeddings=candidate_embedding,
+                query_embeddings=query_embeddings,
+                candidate_embeddings=candidate_embeddings,
                 compute_metrics=False,
                 compute_batch_metrics=False
         )
