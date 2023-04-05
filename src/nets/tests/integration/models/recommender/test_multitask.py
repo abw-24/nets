@@ -6,7 +6,7 @@ from unittest import TestCase as TC, skip
 
 from nets.models.recommender.multitask import TwoTowerMultiTask, \
     ListwiseTwoTowerMultiTask
-from nets.layers.recommender import HashEmbedding
+from nets.models.recommender.embedding import HashEmbedding
 from nets.models.mlp import MLP
 from nets.utils import get_obj
 

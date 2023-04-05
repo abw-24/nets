@@ -5,7 +5,7 @@ from unittest import TestCase as TC
 
 from nets.models.recommender.retrieval import TwoTowerRetrieval
 from nets.models.recommender.embedding import DeepHashEmbedding
-from nets.layers.recommender import HashEmbedding
+from nets.models.recommender.embedding import HashEmbedding
 from nets.utils import get_obj
 
 from nets.tests.utils import try_except_assertion_decorator, \
