@@ -167,7 +167,7 @@ class GaussianDenseVAE(BaseTFKerasModel):
         self._kernel_regularizer = kernel_regularizer
         self._spectral_norm = spectral_norm
         self._reconstruction_activation = reconstruction_activation
-        self._discrepancy_loss = discrepancy_loss
+        self._discrepancy_loss = discrepancy_loss.lower()
         self._sparse_flag = sparse_flag
 
         self._loss_tracker = tf.keras.metrics.Mean(
@@ -230,6 +230,7 @@ class GaussianDenseVAE(BaseTFKerasModel):
 
         super().build(self._input_shape)
 
+    @tf.function
     def train_step(self, data):
         """
         Overrides parent `train_step` to implement custom loss handling.
@@ -246,12 +247,12 @@ class GaussianDenseVAE(BaseTFKerasModel):
             )
 
             #TODO: refactor if statements to use tensorflow logical gates
-            if self._discrepancy_loss.lower() == "mmd":
+            if self._discrepancy_loss == "mmd":
                 true_samples = tf.random.normal(tf.stack(
                         [self._input_shape[0], self._latent_dim]
                 ))
                 discrepancy_loss = self._mmd_loss(z, true_samples)
-            elif self._discrepancy_loss.lower() == "kld":
+            elif self._discrepancy_loss == "kld":
                 kld = -0.5 * (
                         1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var)
                 )
@@ -270,6 +271,13 @@ class GaussianDenseVAE(BaseTFKerasModel):
         self._discrepancy_loss_tracker.update_state(discrepancy_loss)
 
         return {m.name: m.result() for m in self._tracked_metrics}
+
+    @property
+    def metrics(self):
+        """
+        Return tracked metrics here to facilitate `reset_states()`
+        """
+        return self._tracked_metrics
 
     def encode(self, inputs):
         """
