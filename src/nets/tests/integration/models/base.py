@@ -231,7 +231,13 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
 
 
 class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
+    """
+    Listwise flavor of recommender integration mixin. Uses tfrs helpers
+    to reformat ratings data for listwise loss. Currently does not work
+    as expected...
+    """
 
+    #TODO: `tfrs.examples.movielens.sample_listwise` needs replacing?
     @classmethod
     def setUpClass(cls):
         tf.random.set_seed(1)

@@ -1,10 +1,9 @@
 
 import tensorflow as tf
 import os
-from unittest import TestCase as TC, skip
+from unittest import TestCase as TC
 
-from nets.models.recommender.retrieval import TwoTowerRetrieval, \
-    ListwiseTwoTowerRetrieval
+from nets.models.recommender.retrieval import TwoTowerRetrieval
 from nets.models.recommender.embedding import DeepHashEmbedding
 from nets.layers.recommender import HashEmbedding
 from nets.utils import get_obj
@@ -12,7 +11,7 @@ from nets.utils import get_obj
 from nets.tests.utils import try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    RecommenderIntegrationMixin, ListwiseRecommenderIntegrationMixin
+    RecommenderIntegrationMixin
 
 
 class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
@@ -76,45 +75,3 @@ class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC
                 epochs=self._epochs,
                 callbacks=[TrainSanityAssertionCallback()]
         )
-
-
-@skip
-class TestListwiseTwoTowerRetrieval(ListwiseRecommenderIntegrationMixin, TestTwoTowerRetrieval):
-
-    temp = os.path.join(os.getcwd(), "twotower-tmp-model")
-
-    def _generate_default_compiled_model(self):
-        """
-        Instantiate and return a retrieval with the default params.
-        """
-        query_model = HashEmbedding(embedding_dim=self._embedding_dim)
-        candidate_model = HashEmbedding(embedding_dim=self._embedding_dim)
-
-        model = ListwiseTwoTowerRetrieval(
-                query_model=query_model,
-                candidate_model=candidate_model,
-                query_id=self._query_id,
-                candidate_id=self._candidate_id
-        )
-        model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer)
-        )
-        return model
-
-    def _generate_deep_compiled_model(self):
-        """
-        Instantiate and return a deep retrieval model.
-        """
-        query_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
-        candidate_model = DeepHashEmbedding(embedding_dim=self._embedding_dim)
-
-        model = ListwiseTwoTowerRetrieval(
-                query_model=query_model,
-                candidate_model=candidate_model,
-                query_id=self._query_id,
-                candidate_id=self._candidate_id
-        )
-        model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer)
-        )
-        return model

@@ -52,6 +52,7 @@ class MLP(BaseTFKerasModel):
         )
         super().build(input_shape)
 
+    @tf.function
     def train_step(self, data):
 
         x, y = data
