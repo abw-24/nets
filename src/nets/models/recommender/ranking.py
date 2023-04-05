@@ -37,11 +37,16 @@ class TwoTowerRanking(TwoTowerABC):
                 values=[query_embedding, candidate_embedding], axis=1
         ))
 
+    @tf.function
     def compute_loss(self, features, training=False):
 
         labels = features.pop(self._rank_target)
-        rating_predictions = self.__call__(features)
-        return self._task(labels=labels, predictions=rating_predictions)
+        scores = self.__call__(features)
+        return self._task.__call__(
+                labels=labels,
+                predictions=scores,
+                compute_metrics=False
+        )
 
     @property
     def target_model(self):
@@ -91,12 +96,14 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
 
         return self._target_model.__call__(concatenated_embeddings)
 
+    @tf.function
     def compute_loss(self, features, training=False):
 
         labels = features.pop(self._rank_target)
         scores = self.__call__(features)
 
-        return self._task(
+        return self._task.__call__(
                 labels=labels,
                 predictions=tf.squeeze(scores, axis=-1),
+                compute_metrics=False
         )
