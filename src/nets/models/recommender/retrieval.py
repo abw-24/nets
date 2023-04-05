@@ -1,7 +1,6 @@
 
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
-import tensorflow_ranking as tfr
 
 from .base import TwoTowerABC
 
@@ -11,7 +10,8 @@ class TwoTowerRetrieval(TwoTowerABC):
     """
     """
     def __init__(self, query_model, candidate_model, query_id,
-                 candidate_id, name="TwoTowerRetrieval"):
+                 candidate_id, query_context_model=None,
+                 name="TwoTowerRetrieval"):
 
         super().__init__(name=name)
 
@@ -22,7 +22,7 @@ class TwoTowerRetrieval(TwoTowerABC):
         self._query_id = query_id
         self._candidate_id = candidate_id
 
-    def call(self, inputs):
+    def call(self, inputs, training=False):
         """
         """
         query_embeddings = self._query_model(inputs[self._query_id])
@@ -30,7 +30,7 @@ class TwoTowerRetrieval(TwoTowerABC):
         return query_embeddings, candidate_embeddings
 
     @tf.function
-    def compute_loss(self, features, training=False):
+    def compute_loss(self, features, training=True):
         """
         Compute loss for a batch by invoking the task.
         :param features: Feature batch

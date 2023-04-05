@@ -2,12 +2,95 @@
 import tensorflow as tf
 
 from nets.models.base import BaseTFKerasModel
-from nets.layers.recommender import HashEmbedding
 from nets.layers.dense import DenseBlock
+from nets.models.recommender.context import ContextMixin
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class DeepHashEmbedding(BaseTFKerasModel):
+class StringEmbedding(BaseTFKerasModel, ContextMixin):
+
+    def __init__(self, vocab, embedding_dim=32, context_model=None,
+                context_features=None, name="StringEmbedding"):
+
+        super().__init__(name=name)
+
+        self._vocab = vocab
+        self._embedding_dim = embedding_dim
+
+        self._lookup = tf.keras.layers.StringLookup(
+                vocabulary=self._vocab, mask_token=None
+        )
+        self._embed = tf.keras.layers.Embedding(
+                len(self._vocab) + 1, embedding_dim
+        )
+
+    def call(self, inputs, training=False):
+        embeddings = self._embed.__call__(self._lookup.__call__(inputs))
+
+        if self._context_model is not None:
+            context_embeddings = self.context_encode(inputs)
+            embeddings = tf.concat([embeddings, context_embeddings], 1)
+
+        return embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "vocab": self._vocab,
+            "embedding_dim": self._embedding_dim
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class HashEmbedding(BaseTFKerasModel, ContextMixin):
+
+    def __init__(self, hash_bins=262144, embedding_dim=32,
+                 context_model=None, context_features=None,
+                 name="HashEmbedding"):
+
+        super().__init__(name=name)
+
+        self._hash_bins = hash_bins
+        self._embedding_dim = embedding_dim
+        self._context_model = context_model
+        self._context_features = context_features
+
+        self._lookup = tf.keras.layers.Hashing(
+                num_bins=self._hash_bins
+        )
+        self._embed = tf.keras.layers.Embedding(
+                self._hash_bins, embedding_dim
+        )
+
+    def call(self, inputs, training=False):
+        embeddings = self._embed.__call__(self._lookup.__call__(inputs))
+
+        if self._context_model is not None:
+            context_embeddings = self.context_encode(inputs)
+            embeddings = tf.concat([embeddings, context_embeddings], 1)
+
+        return embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "hash_bins": self._hash_bins,
+            "embedding_dim": self._embedding_dim
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
 
     _dense_config = {
         "hidden_dims": [32],
@@ -16,7 +99,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
     }
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
-                 embedding_dim=16, name="DeepHashEmbedding", **kwargs):
+                 embedding_dim=16, context_model=None, context_features=None,
+                 name="DeepHashEmbedding", **kwargs):
 
         super().__init__(name=name)
 
@@ -25,6 +109,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._hash_bins = hash_bins
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
+        self._context_model = context_model
+        self._context_features = context_features
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins, embedding_dim=self._hash_embedding_dim
@@ -38,11 +124,17 @@ class DeepHashEmbedding(BaseTFKerasModel):
 
     def call(self, inputs):
 
-        return self._final_layer.__call__(
+        embeddings = self._final_layer.__call__(
                 self._dense_block.__call__(
                         self._embedding.__call__(inputs)
                 )
         )
+
+        if self._context_model is not None:
+            context_embeddings = self.context_encode(inputs)
+            embeddings = tf.concat([embeddings, context_embeddings], 1)
+
+        return embeddings
 
     def get_config(self):
         config = super().get_config()
