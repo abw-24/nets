@@ -34,7 +34,7 @@ class TwoTowerMultiTask(TwoTowerABC):
                 metrics=[tf.keras.metrics.RootMeanSquaredError()]
         )
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
 
         query_embeddings = self._query_model(inputs[self._query_id])
         candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
@@ -91,7 +91,7 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
                 metrics=[tfr.keras.metrics.NDCGMetric(name="NDCG")]
         )
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
 
         query_embeddings = self._query_model(inputs[self._query_id])
         candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
