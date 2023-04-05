@@ -19,7 +19,7 @@ class MLPFactory(object):
         output_activation = config.get("output_activation", None)
         kernel_regularizer = config.get("kernel_regularizer", None)
         activity_regularizer = config.get("activity_regularizer", None)
-        spectral_norm = config.get("spectral_norm", False)
+        spectral_norm = config.get("spectral_norm", True)
 
         return MLP(
                 hidden_dims=hidden_dims,
@@ -46,7 +46,7 @@ class GaussianDenseVAEFactory(object):
         kernel_regularizer = config.get("kernel_regularizer", None)
         spectral_norm = config.get("spectral_norm", False)
         reconstruction_activation = config.get("reconstruction_activation", None)
-        sparse_flag = config.get("sparse_flag", False)
+        sparse_flag = config.get("sparse_flag", True)
 
         return GaussianDenseVAE(
             encoding_dims=encoding_dims,
