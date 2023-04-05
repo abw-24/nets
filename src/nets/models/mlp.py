@@ -70,7 +70,7 @@ class MLP(BaseTFKerasModel):
         self.compiled_metrics.update_state(y, y_hat)
         return {m.name: m.result() for m in self.metrics}
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
         return self._output_layer(self._dense_block(self._input_layer(inputs)))
 
     def get_config(self):
