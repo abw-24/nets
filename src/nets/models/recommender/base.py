@@ -1,5 +1,5 @@
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 import tensorflow as tf
 
 from nets.models.base import BaseTFRecommenderModel
@@ -26,3 +26,11 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
     @property
     def candidate_model(self):
         return self._candidate_model
+
+    @abstractmethod
+    def call(self, inputs, training=False):
+        raise NotImplementedError("Abstract")
+
+    @abstractmethod
+    def compute_loss(self, features, training=False):
+        raise NotImplementedError("Abstract")

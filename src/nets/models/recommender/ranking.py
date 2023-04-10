@@ -29,19 +29,24 @@ class TwoTowerRanking(TwoTowerABC):
                 metrics=[tf.keras.metrics.RootMeanSquaredError()]
         )
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
 
-        query_embedding = self._query_model(inputs[self._query_id])
-        candidate_embedding = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model(inputs[self._query_id])
+        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
         return self._target_model.__call__(tf.concat(
-                values=[query_embedding, candidate_embedding], axis=1
+                values=[query_embeddings, candidate_embeddings], axis=1
         ))
 
+    @tf.function
     def compute_loss(self, features, training=False):
 
-        labels = features.pop(self._rank_target)
-        rating_predictions = self.__call__(features)
-        return self._task(labels=labels, predictions=rating_predictions)
+        labels = features[self._rank_target]
+        scores = self.__call__(features)
+        return self._task.__call__(
+                labels=labels,
+                predictions=scores,
+                compute_metrics=False
+        )
 
     @property
     def target_model(self):
@@ -75,28 +80,30 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
                 metrics=[tfr.keras.metrics.NDCGMetric(name="NDCG")]
         )
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
 
-        query_embedding = self._query_model(inputs[self._query_id])
-        candidate_embedding = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model(inputs[self._query_id])
+        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
 
         list_length = inputs[self._candidate_id].shape[1]
         query_embedding_vec = tf.repeat(
-                tf.expand_dims(query_embedding, 1), [list_length], axis=1
+                tf.expand_dims(query_embeddings, 1), [list_length], axis=1
         )
 
         concatenated_embeddings = tf.concat(
-                [query_embedding_vec, candidate_embedding], 2
+                [query_embedding_vec, candidate_embeddings], 2
         )
 
         return self._target_model.__call__(concatenated_embeddings)
 
+    @tf.function
     def compute_loss(self, features, training=False):
 
-        labels = features.pop(self._rank_target)
+        labels = features[self._rank_target]
         scores = self.__call__(features)
 
-        return self._task(
+        return self._task.__call__(
                 labels=labels,
                 predictions=tf.squeeze(scores, axis=-1),
+                compute_metrics=False
         )
