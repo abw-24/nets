@@ -43,3 +43,4 @@ class MultiHeadMaskedSelfAttention(tf.keras.layers.Layer):
             "num_heads": self._num_heads,
             "key_dim": self._key_dim
         })
+        return config
