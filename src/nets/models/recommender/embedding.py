@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from nets.models.base import BaseTFKerasModel
 from nets.layers.dense import DenseBlock
+from nets.layers.sequence import MultiHeadMaskedSelfAttention
 from nets.models.recommender.context import ContextMixin
 
 
@@ -37,7 +38,9 @@ class StringEmbedding(BaseTFKerasModel, ContextMixin):
         config = super().get_config()
         config.update({
             "vocab": self._vocab,
-            "embedding_dim": self._embedding_dim
+            "embedding_dim": self._embedding_dim,
+            "context_model": self._context_model,
+            "context_features": self._context_features
         })
         return config
 
@@ -80,7 +83,9 @@ class HashEmbedding(BaseTFKerasModel, ContextMixin):
         config = super().get_config()
         config.update({
             "hash_bins": self._hash_bins,
-            "embedding_dim": self._embedding_dim
+            "embedding_dim": self._embedding_dim,
+            "context_model": self._context_model,
+            "context_features": self._context_features
         })
         return config
 
@@ -100,7 +105,7 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, context_features=None,
-                 name="DeepHashEmbedding", **kwargs):
+                 name="DeepHashEmbedding", attention_key_dim=None, **kwargs):
 
         super().__init__(name=name)
 
@@ -111,10 +116,15 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
         self._context_features = context_features
+        self._attention_key_dim = attention_key_dim
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins, embedding_dim=self._hash_embedding_dim
         )
+        if self._attention_key_dim is not None:
+            self._mha = MultiHeadMaskedSelfAttention(
+                    num_heads=4, key_dim=self._attention_key_dim
+            )
         self._dense_block = DenseBlock.from_config(
                 self._dense_config
         )
@@ -124,9 +134,14 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
 
     def call(self, inputs):
 
+        raw_embeddings = self._embedding.__call__(inputs)
+
+        if self._attention_key_dim is not None:
+            raw_embeddings = self._mha.__call__(raw_embeddings)
+
         embeddings = self._final_layer.__call__(
                 self._dense_block.__call__(
-                        self._embedding.__call__(inputs)
+                    raw_embeddings
                 )
         )
 
@@ -141,7 +156,10 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
         config.update({
             "hash_bins": self._hash_bins,
             "hash_embedding_dim": self._hash_embedding_dim,
-            "embedding_dim": self._embedding_dim
+            "embedding_dim": self._embedding_dim,
+            "context_model": self._context_model,
+            "context_features": self._context_features,
+            "attention_key_dim": self._attention_key_dim
         })
         config.update(self._dense_config)
         return config

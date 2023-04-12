@@ -102,6 +102,8 @@ class TestHashEmbedding(unittest.TestCase):
             "Embedded dimension does not match configured value."
 
 
+#TODO: Add tests to cover context features
+#TODO: Add tests to cover sequence input / uses the attention layer
 class TestDeepHashEmbedding(unittest.TestCase):
 
     def setUp(self):
