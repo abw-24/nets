@@ -11,10 +11,10 @@ from nets.utils import get_obj
 from nets.tests.utils import try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    RecommenderIntegrationMixin
+    RecommenderIntegrationTrait
 
 
-class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
+class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
     """
     """
 
