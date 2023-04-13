@@ -83,7 +83,7 @@ class ModelIntegrationABC(ABC):
         raise NotImplementedError("Abstract")
 
 
-class ModelIntegrationMixin(object):
+class ModelIntegrationTrait(object):
     """
     Common concrete methods for all integration mixin flavors.
         - `tearDown` deletes any artifacts saved at `temp` (may need to be
@@ -120,7 +120,7 @@ class ModelIntegrationMixin(object):
         )
 
 
-class RecommenderIntegrationMixin(ModelIntegrationMixin):
+class RecommenderIntegrationTrait(ModelIntegrationTrait):
 
     """
     Mixin for recommender model testing. Implements several of the base ABCs
@@ -230,7 +230,7 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         _ = tf.saved_model.load(self.temp)
 
 
-class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
+class ListwiseRecommenderIntegrationTrait(RecommenderIntegrationTrait):
     """
     Listwise flavor of recommender integration mixin. Uses tfrs helpers
     to reformat ratings data for listwise loss. Currently does not work
@@ -269,7 +269,7 @@ class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
             .batch(100)
 
 
-class DenseIntegrationMixin(ModelIntegrationMixin):
+class DenseIntegrationTrait(ModelIntegrationTrait):
 
     """
     Mixin for dense model testing. Implements several of the base ABCs
