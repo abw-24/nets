@@ -3,16 +3,17 @@ import tensorflow as tf
 import tensorflow_recommenders as tfrs
 import tensorflow_ranking as tfr
 
-from .base import TwoTowerABC
+from .base import TwoTowerABC, TwoTowerTrait
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRanking(TwoTowerABC):
+class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
 
     """
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
-                 query_id, candidate_id, name="TwoTowerRanking"):
+                 query_id, candidate_id, query_context_features=None,
+                 candidate_context_features=None, name="TwoTowerRanking"):
 
         super().__init__(name=name)
 
@@ -22,6 +23,13 @@ class TwoTowerRanking(TwoTowerABC):
         self._rank_target = rank_target
         self._query_id = query_id
         self._candidate_id = candidate_id
+        self._query_context_features = query_context_features
+        self._candidate_context_features = candidate_context_features
+
+        self._query_context_tensor_flag = \
+            self._query_context_features is not None
+        self._candidate_context_tensor_flag = \
+            self._candidate_context_features is not None
 
         # Basic task, can be overwritten / paramterized as needed
         self._task = tfrs.tasks.Ranking(
@@ -31,8 +39,9 @@ class TwoTowerRanking(TwoTowerABC):
 
     def call(self, inputs, training=True):
 
-        query_embeddings = self._query_model(inputs[self._query_id])
-        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model_with_context(inputs)
+        candidate_embeddings = self._candidate_model_with_context(inputs)
+
         return self._target_model.__call__(tf.concat(
                 values=[query_embeddings, candidate_embeddings], axis=1
         ))
@@ -63,7 +72,8 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
     """
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
-                 query_id, candidate_id, name="ListwiseTwoTowerRanking"):
+                 query_id, candidate_id, query_context_features=None,
+                 candidate_context_features=None, name="ListwiseTwoTowerRanking"):
 
         super().__init__(
                 target_model=target_model,
@@ -72,6 +82,8 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
                 rank_target=rank_target,
                 query_id=query_id,
                 candidate_id=candidate_id,
+                query_context_features=query_context_features,
+                candidate_context_features=candidate_context_features,
                 name=name
         )
 
@@ -82,8 +94,8 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
 
     def call(self, inputs, training=True):
 
-        query_embeddings = self._query_model(inputs[self._query_id])
-        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model_with_context(inputs)
+        candidate_embeddings = self._candidate_model_with_context(inputs)
 
         list_length = inputs[self._candidate_id].shape[1]
         query_embedding_vec = tf.repeat(

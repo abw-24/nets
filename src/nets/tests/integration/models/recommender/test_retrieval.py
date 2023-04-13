@@ -11,10 +11,10 @@ from nets.utils import get_obj
 from nets.tests.utils import try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    RecommenderIntegrationMixin
+    RecommenderIntegrationTrait
 
 
-class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
+class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
     """
     """
 
@@ -69,7 +69,7 @@ class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC
         for a retrieval model with deep embeddings. Assertion is done directly
         in TrainSanityCallback.
         """
-        model = self._generate_default_compiled_model()
+        model = self._generate_deep_compiled_model()
         model.fit(
                 self._train,
                 epochs=self._epochs,

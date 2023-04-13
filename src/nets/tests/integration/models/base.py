@@ -83,7 +83,7 @@ class ModelIntegrationABC(ABC):
         raise NotImplementedError("Abstract")
 
 
-class ModelIntegrationMixin(object):
+class ModelIntegrationTrait(object):
     """
     Common concrete methods for all integration mixin flavors.
         - `tearDown` deletes any artifacts saved at `temp` (may need to be
@@ -120,7 +120,7 @@ class ModelIntegrationMixin(object):
         )
 
 
-class RecommenderIntegrationMixin(ModelIntegrationMixin):
+class RecommenderIntegrationTrait(ModelIntegrationTrait):
 
     """
     Mixin for recommender model testing. Implements several of the base ABCs
@@ -192,21 +192,22 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
     @try_except_assertion_decorator
     def test_predict(self):
         """
-        Test that prediction works.
+        Test that prediction works. Assumes no context model.
         """
         model = self._generate_default_compiled_model()
         model.fit(
                 self._train,
                 epochs=self._epochs
         )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
+        index = tfrs.layers.factorized_top_k.BruteForce(k=10)
         index.index_from_dataset(
                 tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.candidate_model)
+                    self._movies.map(lambda x: model.query_model((x, None))),
+                    self._movies.map(lambda x: model.candidate_model((x, None)))
                 ))
         )
 
-        _, titles = index(tf.constant(["1"]))
+        _, titles = index(model.query_model((tf.constant(["1"]), None)))
 
     @try_except_assertion_decorator
     def test_save_and_load(self):
@@ -219,10 +220,11 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
                 self._train,
                 epochs=self._epochs
         )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
+        index = tfrs.layers.factorized_top_k.BruteForce(k=10)
         index.index_from_dataset(
                 tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.candidate_model)
+                    self._movies.map(lambda x: model.query_model((x, None))),
+                    self._movies.map(lambda x: model.candidate_model((x, None)))
                 ))
         )
 
@@ -230,7 +232,7 @@ class RecommenderIntegrationMixin(ModelIntegrationMixin):
         _ = tf.saved_model.load(self.temp)
 
 
-class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
+class ListwiseRecommenderIntegrationTrait(RecommenderIntegrationTrait):
     """
     Listwise flavor of recommender integration mixin. Uses tfrs helpers
     to reformat ratings data for listwise loss. Currently does not work
@@ -269,7 +271,7 @@ class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
             .batch(100)
 
 
-class DenseIntegrationMixin(ModelIntegrationMixin):
+class DenseIntegrationTrait(ModelIntegrationTrait):
 
     """
     Mixin for dense model testing. Implements several of the base ABCs

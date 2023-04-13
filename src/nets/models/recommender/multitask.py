@@ -3,16 +3,17 @@ import tensorflow as tf
 import tensorflow_recommenders as tfrs
 import tensorflow_ranking as tfr
 
-from .base import TwoTowerABC
+from .base import TwoTowerABC, TwoTowerTrait
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerMultiTask(TwoTowerABC):
+class TwoTowerMultiTask(TwoTowerABC, TwoTowerTrait):
 
     """
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
-                 query_id, candidate_id, balance=0.5, name="TwoTowerRanking"):
+                 query_id, candidate_id, balance=0.5, query_context_features=None,
+                 candidate_context_features=None, name="TwoTowerMultitask"):
 
         super().__init__(name=name)
 
@@ -23,6 +24,13 @@ class TwoTowerMultiTask(TwoTowerABC):
         self._candidate_id = candidate_id
         self._rank_target = rank_target
         self._balance = balance
+        self._query_context_features = query_context_features
+        self._candidate_context_features = candidate_context_features
+
+        self._query_context_tensor_flag = \
+            self._query_context_features is not None
+        self._candidate_context_tensor_flag = \
+            self._candidate_context_features is not None
 
         self._rank_weight = self._balance
         self._retrieval_weight = 1.0 - self._balance
@@ -36,8 +44,9 @@ class TwoTowerMultiTask(TwoTowerABC):
 
     def call(self, inputs, training=True):
 
-        query_embeddings = self._query_model(inputs[self._query_id])
-        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model_with_context(inputs)
+        candidate_embeddings = self._candidate_model_with_context(inputs)
+
         rank_prediction = self._target_model.__call__(tf.concat(
                 values=[query_embeddings, candidate_embeddings], axis=1
         ))
@@ -45,7 +54,7 @@ class TwoTowerMultiTask(TwoTowerABC):
         return (query_embeddings, candidate_embeddings, rank_prediction)
 
     @tf.function
-    def compute_loss(self, features, training=False):
+    def compute_loss(self, features, training=True):
 
         labels = features[self._rank_target]
         query_embeddings, candidate_embeddings, scores = self.__call__(features)
@@ -53,12 +62,12 @@ class TwoTowerMultiTask(TwoTowerABC):
         retrieval_loss = self._retrieval_task.__call__(
                 query_embeddings=query_embeddings,
                 candidate_embeddings=candidate_embeddings,
-                compute_metrics=False
+                compute_metrics=not training
         )
         rank_loss = self._rank_task.__call__(
                 labels=labels,
                 predictions=tf.squeeze(scores, axis=-1),
-                compute_metrics=False
+                compute_metrics=not training
         )
 
         return (self._rank_weight * rank_loss
@@ -71,7 +80,8 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
     """
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
-                 query_id, candidate_id, balance=0.5, name="ListwiseTwoTowerMultiTask"):
+                 query_id, candidate_id, balance=0.5, query_context_features=None,
+                 candidate_context_features=None, name="ListwiseTwoTowerMultitask"):
 
         super().__init__(
                 target_model=target_model,
@@ -81,6 +91,8 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
                 query_id=query_id,
                 candidate_id=candidate_id,
                 balance=balance,
+                query_context_features=query_context_features,
+                candidate_context_features=candidate_context_features,
                 name=name
         )
 
@@ -93,8 +105,8 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
 
     def call(self, inputs, training=True):
 
-        query_embeddings = self._query_model(inputs[self._query_id])
-        candidate_embeddings = self._candidate_model(inputs[self._candidate_id])
+        query_embeddings = self._query_model_with_context(inputs)
+        candidate_embeddings = self._candidate_model_with_context(inputs)
 
         list_length = inputs[self._candidate_id].shape[1]
 
@@ -111,7 +123,7 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
         return (query_embedding_vec, candidate_embeddings, rank_prediction)
 
     @tf.function
-    def compute_loss(self, features, training=False):
+    def compute_loss(self, features, training=True):
 
         labels = features[self._rank_target]
         query_embeddings, candidate_embeddings, scores = self.__call__(features)
@@ -119,12 +131,12 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
         retrieval_loss = self._retrieval_task.__call__(
                 query_embeddings=query_embeddings,
                 candidate_embeddings=candidate_embeddings,
-                compute_metrics=False
+                compute_metrics=not training
         )
         rank_loss = self._rank_task.__call__(
                 labels=labels,
                 predictions=tf.squeeze(scores, axis=-1),
-                compute_metrics=False
+                compute_metrics=not training
         )
 
         return (self._rank_weight * rank_loss

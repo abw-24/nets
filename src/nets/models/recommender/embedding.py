@@ -3,20 +3,22 @@ import tensorflow as tf
 
 from nets.models.base import BaseTFKerasModel
 from nets.layers.dense import DenseBlock
-from nets.layers.sequence import MultiHeadMaskedSelfAttention
-from nets.models.recommender.context import ContextMixin
+from nets.layers.sequence import MultiHeadSelfAttention
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class StringEmbedding(BaseTFKerasModel, ContextMixin):
+class StringEmbedding(BaseTFKerasModel):
 
     def __init__(self, vocab, embedding_dim=32, context_model=None,
-                context_features=None, name="StringEmbedding"):
+                 name="StringEmbedding"):
 
         super().__init__(name=name)
 
         self._vocab = vocab
         self._embedding_dim = embedding_dim
+        self._context_model = context_model
+
+        self._context_tensor_flag = self._context_model is not None
 
         self._lookup = tf.keras.layers.StringLookup(
                 vocabulary=self._vocab, mask_token=None
@@ -25,11 +27,13 @@ class StringEmbedding(BaseTFKerasModel, ContextMixin):
                 len(self._vocab) + 1, embedding_dim
         )
 
-    def call(self, inputs, training=False):
-        embeddings = self._embed.__call__(self._lookup.__call__(inputs))
+    # TODO: consider context handling for sequential input?
+    def call(self, inputs, training=True):
+        embedding_id, context = inputs
+        embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
-        if self._context_model is not None:
-            context_embeddings = self.context_encode(inputs)
+        if self._context_tensor_flag:
+            context_embeddings = self._context_model(context)
             embeddings = tf.concat([embeddings, context_embeddings], 1)
 
         return embeddings
@@ -39,8 +43,7 @@ class StringEmbedding(BaseTFKerasModel, ContextMixin):
         config.update({
             "vocab": self._vocab,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model,
-            "context_features": self._context_features
+            "context_model": self._context_model
         })
         return config
 
@@ -50,19 +53,18 @@ class StringEmbedding(BaseTFKerasModel, ContextMixin):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class HashEmbedding(BaseTFKerasModel, ContextMixin):
+class HashEmbedding(BaseTFKerasModel):
 
     def __init__(self, hash_bins=262144, embedding_dim=32,
-                 context_model=None, context_features=None,
-                 name="HashEmbedding"):
+                 context_model=None, name="HashEmbedding"):
 
         super().__init__(name=name)
 
         self._hash_bins = hash_bins
         self._embedding_dim = embedding_dim
         self._context_model = context_model
-        self._context_features = context_features
 
+        self._context_tensor_flag = self._context_model is not None
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
         )
@@ -70,11 +72,13 @@ class HashEmbedding(BaseTFKerasModel, ContextMixin):
                 self._hash_bins, embedding_dim
         )
 
-    def call(self, inputs, training=False):
-        embeddings = self._embed.__call__(self._lookup.__call__(inputs))
+    # TODO: consider context handling for sequential input?
+    def call(self, inputs, training=True):
+        embedding_id, context = inputs
+        embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
         if self._context_model is not None:
-            context_embeddings = self.context_encode(inputs)
+            context_embeddings = self._context_model(context)
             embeddings = tf.concat([embeddings, context_embeddings], 1)
 
         return embeddings
@@ -84,8 +88,7 @@ class HashEmbedding(BaseTFKerasModel, ContextMixin):
         config.update({
             "hash_bins": self._hash_bins,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model,
-            "context_features": self._context_features
+            "context_model": self._context_model
         })
         return config
 
@@ -95,7 +98,7 @@ class HashEmbedding(BaseTFKerasModel, ContextMixin):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
+class DeepHashEmbedding(BaseTFKerasModel):
 
     _dense_config = {
         "hidden_dims": [32],
@@ -104,8 +107,8 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
     }
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
-                 embedding_dim=16, context_model=None, context_features=None,
-                 name="DeepHashEmbedding", attention_key_dim=None, **kwargs):
+                 embedding_dim=16, context_model=None, attention_key_dim=None,
+                 name="DeepHashEmbedding", **kwargs):
 
         super().__init__(name=name)
 
@@ -115,15 +118,19 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
         self._context_model = context_model
-        self._context_features = context_features
         self._attention_key_dim = attention_key_dim
+
+        self._context_tensor_flag = self._context_model is not None
+        self._attention_tensor_flag = self._attention_key_dim is not None
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins, embedding_dim=self._hash_embedding_dim
         )
-        if self._attention_key_dim is not None:
-            self._mha = MultiHeadMaskedSelfAttention(
-                    num_heads=4, key_dim=self._attention_key_dim
+        if self._attention_tensor_flag:
+            self._mha = MultiHeadSelfAttention(
+                    num_heads=4,
+                    key_dim=self._attention_key_dim,
+                    masking=False
             )
         self._dense_block = DenseBlock.from_config(
                 self._dense_config
@@ -132,11 +139,12 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
                 units=self._embedding_dim, activation="linear"
         )
 
-    def call(self, inputs):
+    def call(self, inputs, training=True):
 
+        # HashEmbedding layer handles parsing the id and context
         raw_embeddings = self._embedding.__call__(inputs)
 
-        if self._attention_key_dim is not None:
+        if self._attention_tensor_flag:
             raw_embeddings = self._mha.__call__(raw_embeddings)
 
         embeddings = self._final_layer.__call__(
@@ -144,10 +152,6 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
                     raw_embeddings
                 )
         )
-
-        if self._context_model is not None:
-            context_embeddings = self.context_encode(inputs)
-            embeddings = tf.concat([embeddings, context_embeddings], 1)
 
         return embeddings
 
@@ -158,7 +162,6 @@ class DeepHashEmbedding(BaseTFKerasModel, ContextMixin):
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "context_features": self._context_features,
             "attention_key_dim": self._attention_key_dim
         })
         config.update(self._dense_config)
