@@ -192,21 +192,22 @@ class RecommenderIntegrationTrait(ModelIntegrationTrait):
     @try_except_assertion_decorator
     def test_predict(self):
         """
-        Test that prediction works.
+        Test that prediction works. Assumes no context model.
         """
         model = self._generate_default_compiled_model()
         model.fit(
                 self._train,
                 epochs=self._epochs
         )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
+        index = tfrs.layers.factorized_top_k.BruteForce(k=10)
         index.index_from_dataset(
                 tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.candidate_model)
+                    self._movies.map(lambda x: model.query_model((x, None))),
+                    self._movies.map(lambda x: model.candidate_model((x, None)))
                 ))
         )
 
-        _, titles = index(tf.constant(["1"]))
+        _, titles = index(model.query_model((tf.constant(["1"]), None)))
 
     @try_except_assertion_decorator
     def test_save_and_load(self):
@@ -219,10 +220,11 @@ class RecommenderIntegrationTrait(ModelIntegrationTrait):
                 self._train,
                 epochs=self._epochs
         )
-        index = tfrs.layers.factorized_top_k.BruteForce(model.query_model)
+        index = tfrs.layers.factorized_top_k.BruteForce(k=10)
         index.index_from_dataset(
                 tf.data.Dataset.zip((
-                    self._movies, self._movies.map(model.candidate_model)
+                    self._movies.map(lambda x: model.query_model((x, None))),
+                    self._movies.map(lambda x: model.candidate_model((x, None)))
                 ))
         )
 
