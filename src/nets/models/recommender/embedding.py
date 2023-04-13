@@ -145,6 +145,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
                 units=self._embedding_dim, activation="linear"
         )
 
+    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
 
