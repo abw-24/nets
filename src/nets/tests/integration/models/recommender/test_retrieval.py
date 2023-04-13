@@ -69,7 +69,7 @@ class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC
         for a retrieval model with deep embeddings. Assertion is done directly
         in TrainSanityCallback.
         """
-        model = self._generate_default_compiled_model()
+        model = self._generate_deep_compiled_model()
         model.fit(
                 self._train,
                 epochs=self._epochs,
