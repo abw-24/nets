@@ -11,32 +11,41 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
     """
 
     def __init__(self, num_heads=4, key_dim=128, masking=False,
-                 name="MultiHeadSelfAttention"):
+                 pooling=False, name="MultiHeadSelfAttention"):
 
         super().__init__(name=name)
 
         self._num_heads = num_heads
         self._key_dim = key_dim
         self._masking = masking
+        self._pooling = pooling
 
+        self._pooling_tensor_flag = tf.convert_to_tensor(
+                self._pooling, dtype=tf.bool
+        )
         self._attention = tf.keras.layers.MultiHeadAttention(
                 num_heads=num_heads, key_dim=key_dim
         )
         self._add = tf.keras.layers.Add()
         self._layer_norm = tf.keras.layers.LayerNormalization()
 
+        if self._pooling_tensor_flag:
+            self._global_pool = tf.keras.layers.GlobalAveragePooling1D()
+
     def build(self, input_shape):
         super().build(input_shape)
 
     def call(self, inputs):
-        output = self._attention(
+        output = self._attention.__call__(
                 query=inputs,
                 value=inputs,
                 key=inputs,
                 use_causal_mask=self._masking
         )
-        embedding = self._add([inputs, output])
-        embedding = self._layer_norm(embedding)
+        embedding = self._add.__call__([inputs, output])
+        if self._pooling_tensor_flag:
+            embedding = self._global_pool.__call__(embedding)
+        embedding = self._layer_norm.__call__(embedding)
         return embedding
 
     def get_config(self):
