@@ -18,6 +18,9 @@ class StringEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
+        self._context_tensor_flag = tf.convert_to_tensor(
+                self._context_model is not None, dtype=tf.bool
+        )
         self._lookup = tf.keras.layers.StringLookup(
                 vocabulary=self._vocab, mask_token=None
         )
@@ -29,7 +32,7 @@ class StringEmbedding(BaseTFKerasModel):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
-        if self._context_model is not None:
+        if self._context_tensor_flag:
             context_embeddings = self._context_model(context)
             embeddings = tf.concat([embeddings, context_embeddings], 1)
 
@@ -62,6 +65,9 @@ class HashEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
+        self._context_tensor_flag = tf.convert_to_tensor(
+                self._context_model is not None, dtype=tf.bool
+        )
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
         )
@@ -117,10 +123,16 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._context_model = context_model
         self._attention_key_dim = attention_key_dim
 
+        self._context_tensor_flag = tf.convert_to_tensor(
+                self._context_model is not None, dtype=tf.bool
+        )
+        self._attention_tensor_flag = tf.convert_to_tensor(
+                self._attention_key_dim is not None, dtype=tf.bool
+        )
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins, embedding_dim=self._hash_embedding_dim
         )
-        if self._attention_key_dim is not None:
+        if self._attention_tensor_flag:
             self._mha = MultiHeadSelfAttention(
                     num_heads=4,
                     key_dim=self._attention_key_dim,
@@ -138,7 +150,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
 
         raw_embeddings = self._embedding.__call__(embedding_id)
 
-        if self._attention_key_dim is not None:
+        if self._attention_tensor_flag:
             raw_embeddings = self._mha.__call__(raw_embeddings)
 
         embeddings = self._final_layer.__call__(
@@ -147,8 +159,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
                 )
         )
 
-        if self._context_model is not None:
-            context_embeddings = self._context_model(context)
+        if self._context_tensor_flag:
+            context_embeddings = self._context_model.__call__(context)
             embeddings = tf.concat([embeddings, context_embeddings], 1)
 
         return embeddings
