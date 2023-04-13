@@ -6,6 +6,7 @@ from nets.layers.sequence import MultiHeadSelfAttention as MHSA
 from nets.tests.utils import try_except_assertion_decorator
 
 
+#TODO: add tests with pooling and concat options
 class TestMultiHeadSelfAttention(unittest.TestCase):
 
     def setUp(self):
