@@ -3,19 +3,21 @@ import tensorflow as tf
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class MultiHeadMaskedSelfAttention(tf.keras.layers.Layer):
+class MultiHeadSelfAttention(tf.keras.layers.Layer):
     """
-    Masked self-attention with residual connections, as in
-    Transformer setups.
+    Self-attention with residual connections, as in Transformer setups.
+    Optionally can set `masking` to True for "causal" training with a
+    1-step shifted target vector, as in the original paper.
     """
 
-    def __init__(self, num_heads=4, key_dim=128,
-                 name="MultiHeadMaskedSelfAttention"):
+    def __init__(self, num_heads=4, key_dim=128, masking=False,
+                 name="MultiHeadSelfAttention"):
 
         super().__init__(name=name)
 
         self._num_heads = num_heads
         self._key_dim = key_dim
+        self._masking = masking
 
         self._attention = tf.keras.layers.MultiHeadAttention(
                 num_heads=num_heads, key_dim=key_dim
@@ -31,7 +33,7 @@ class MultiHeadMaskedSelfAttention(tf.keras.layers.Layer):
                 query=inputs,
                 value=inputs,
                 key=inputs,
-                use_causal_mask=True
+                use_causal_mask=self._masking
         )
         embedding = self._add([inputs, output])
         embedding = self._layer_norm(embedding)
@@ -41,6 +43,7 @@ class MultiHeadMaskedSelfAttention(tf.keras.layers.Layer):
         config = super().get_config()
         config.update({
             "num_heads": self._num_heads,
-            "key_dim": self._key_dim
+            "key_dim": self._key_dim,
+            "masking": self._masking
         })
         return config
