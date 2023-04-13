@@ -37,6 +37,10 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
 
 
 class TwoTowerTrait(object):
+    """
+    Simplifying utilities for generic calls to query/candidate
+    embedding models with optional context.
+    """
 
     # To be overwritten / implemented in mixin classes
     _query_model = None
@@ -49,6 +53,9 @@ class TwoTowerTrait(object):
     _candidate_id = None
 
     def _query_model_with_context(self, inputs):
+        """
+        Form (embedding_id, context) tuples and pass to the _query_model
+        """
 
         if self._query_context_tensor_flag:
             query_context = inputs[self._query_context_features]
@@ -62,6 +69,9 @@ class TwoTowerTrait(object):
         return query_embeddings
 
     def _candidate_model_with_context(self, inputs):
+        """
+        Form (embedding_id, context) tuples and pass to the _candidate_model
+        """
 
         if self._candidate_context_tensor_flag:
             candidate_context = inputs[self._candidate_context_features]
