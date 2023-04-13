@@ -6,7 +6,7 @@ from .base import TwoTowerABC, TwoTowerTrait
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRetrieval(TwoTowerABC, TwoTowerTrait):
+class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
     """
     """
     def __init__(self, query_model, candidate_model, query_id,
@@ -24,12 +24,10 @@ class TwoTowerRetrieval(TwoTowerABC, TwoTowerTrait):
         self._query_context_features = query_context_features
         self._candidate_context_features = candidate_context_features
 
-        self._query_context_tensor_flag = tf.convert_to_tensor(
-                self._query_context_features is not None, dtype=tf.bool
-        )
-        self._candidate_context_tensor_flag = tf.convert_to_tensor(
-                self._candidate_context_features is not None, dtype=tf.bool
-        )
+        self._query_context_tensor_flag = \
+            self._query_context_features is not None
+        self._candidate_context_tensor_flag = \
+            self._candidate_context_features is not None
 
     def call(self, inputs, training=False):
         """

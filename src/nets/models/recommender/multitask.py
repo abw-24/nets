@@ -27,12 +27,10 @@ class TwoTowerMultiTask(TwoTowerABC, TwoTowerTrait):
         self._query_context_features = query_context_features
         self._candidate_context_features = candidate_context_features
 
-        self._query_context_tensor_flag = tf.convert_to_tensor(
-                self._query_context_features is not None, dtype=tf.bool
-        )
-        self._candidate_context_tensor_flag = tf.convert_to_tensor(
-                self._candidate_context_features is not None, dtype=tf.bool
-        )
+        self._query_context_tensor_flag = \
+            self._query_context_features is not None
+        self._candidate_context_tensor_flag = \
+            self._candidate_context_features is not None
 
         self._rank_weight = self._balance
         self._retrieval_weight = 1.0 - self._balance

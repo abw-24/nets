@@ -18,9 +18,8 @@ class StringEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
-        self._context_tensor_flag = tf.convert_to_tensor(
-                self._context_model is not None, dtype=tf.bool
-        )
+        self._context_tensor_flag = self._context_model is not None
+
         self._lookup = tf.keras.layers.StringLookup(
                 vocabulary=self._vocab, mask_token=None
         )
@@ -28,6 +27,7 @@ class StringEmbedding(BaseTFKerasModel):
                 len(self._vocab) + 1, embedding_dim
         )
 
+    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
@@ -43,8 +43,7 @@ class StringEmbedding(BaseTFKerasModel):
         config.update({
             "vocab": self._vocab,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model,
-            "context_features": self._context_features
+            "context_model": self._context_model
         })
         return config
 
@@ -65,9 +64,7 @@ class HashEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
-        self._context_tensor_flag = tf.convert_to_tensor(
-                self._context_model is not None, dtype=tf.bool
-        )
+        self._context_tensor_flag = self._context_model is not None
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
         )
@@ -75,6 +72,7 @@ class HashEmbedding(BaseTFKerasModel):
                 self._hash_bins, embedding_dim
         )
 
+    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
@@ -90,8 +88,7 @@ class HashEmbedding(BaseTFKerasModel):
         config.update({
             "hash_bins": self._hash_bins,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model,
-            "context_features": self._context_features
+            "context_model": self._context_model
         })
         return config
 
@@ -123,12 +120,9 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._context_model = context_model
         self._attention_key_dim = attention_key_dim
 
-        self._context_tensor_flag = tf.convert_to_tensor(
-                self._context_model is not None, dtype=tf.bool
-        )
-        self._attention_tensor_flag = tf.convert_to_tensor(
-                self._attention_key_dim is not None, dtype=tf.bool
-        )
+        self._context_tensor_flag = self._context_model is not None
+        self._attention_tensor_flag = self._attention_key_dim is not None
+
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins, embedding_dim=self._hash_embedding_dim
         )
@@ -145,11 +139,10 @@ class DeepHashEmbedding(BaseTFKerasModel):
                 units=self._embedding_dim, activation="linear"
         )
 
-    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
-        embedding_id, context = inputs
 
-        raw_embeddings = self._embedding.__call__(embedding_id)
+        # HashEmbedding layer handles parsing the id and context
+        raw_embeddings = self._embedding.__call__(inputs)
 
         if self._attention_tensor_flag:
             raw_embeddings = self._mha.__call__(raw_embeddings)
@@ -160,10 +153,6 @@ class DeepHashEmbedding(BaseTFKerasModel):
                 )
         )
 
-        if self._context_tensor_flag:
-            context_embeddings = self._context_model.__call__(context)
-            embeddings = tf.concat([embeddings, context_embeddings], 1)
-
         return embeddings
 
     def get_config(self):
@@ -173,7 +162,6 @@ class DeepHashEmbedding(BaseTFKerasModel):
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "context_features": self._context_features,
             "attention_key_dim": self._attention_key_dim
         })
         config.update(self._dense_config)
