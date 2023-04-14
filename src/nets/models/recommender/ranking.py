@@ -26,9 +26,9 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
         self._query_context_features = query_context_features
         self._candidate_context_features = candidate_context_features
 
-        self._query_context_tensor_flag = \
+        self._query_context_flag = \
             self._query_context_features is not None
-        self._candidate_context_tensor_flag = \
+        self._candidate_context_flag = \
             self._candidate_context_features is not None
 
         # Basic task, can be overwritten / paramterized as needed
@@ -47,14 +47,14 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
         ))
 
     @tf.function
-    def compute_loss(self, features, training=False):
+    def compute_loss(self, features, training=True):
 
         labels = features[self._rank_target]
         scores = self.__call__(features)
         return self._task.__call__(
                 labels=labels,
                 predictions=scores,
-                compute_metrics=False
+                compute_metrics=not training
         )
 
     @property
@@ -109,7 +109,7 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
         return self._target_model.__call__(concatenated_embeddings)
 
     @tf.function
-    def compute_loss(self, features, training=False):
+    def compute_loss(self, features, training=True):
 
         labels = features[self._rank_target]
         scores = self.__call__(features)
@@ -117,5 +117,5 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
         return self._task.__call__(
                 labels=labels,
                 predictions=tf.squeeze(scores, axis=-1),
-                compute_metrics=False
+                compute_metrics=not training
         )

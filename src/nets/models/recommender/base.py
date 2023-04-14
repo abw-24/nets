@@ -44,11 +44,11 @@ class TwoTowerTrait(object):
 
     # To be overwritten / implemented in mixin classes
     _query_model = None
-    _query_context_tensor_flag = None
+    _query_context_flag = None
     _query_context_features = None
     _query_id = None
     _candidate_model = None
-    _candidate_context_tensor_flag = None
+    _candidate_context_flag = None
     _candidate_context_features = None
     _candidate_id = None
 
@@ -57,7 +57,7 @@ class TwoTowerTrait(object):
         Form (embedding_id, context) tuples and pass to the _query_model
         """
 
-        if self._query_context_tensor_flag:
+        if self._query_context_flag:
             query_context = inputs[self._query_context_features]
         else:
             query_context = None
@@ -73,7 +73,7 @@ class TwoTowerTrait(object):
         Form (embedding_id, context) tuples and pass to the _candidate_model
         """
 
-        if self._candidate_context_tensor_flag:
+        if self._candidate_context_flag:
             candidate_context = inputs[self._candidate_context_features]
         else:
             candidate_context = None
