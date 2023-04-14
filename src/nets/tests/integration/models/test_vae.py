@@ -8,12 +8,12 @@ from nets.models.vae import GaussianDenseVAE
 from nets.utils import get_obj
 
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    DenseIntegrationMixin
+    DenseIntegrationTrait
 from nets.tests.utils import try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 
 
-class TestVAE(DenseIntegrationMixin, ModelIntegrationABC, TC):
+class TestVAE(DenseIntegrationTrait, ModelIntegrationABC, TC):
 
     temp = os.path.join(os.getcwd(), "vae-tmp-model")
 

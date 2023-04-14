@@ -50,7 +50,7 @@ class TestStringEmbedding(unittest.TestCase):
         embedder = StringEmbedding(
                 vocab=self._vocab, embedding_dim=self._embedding_dim
         )
-        embedding = embedder(np.array(["one"]))
+        embedding = embedder((np.array(["one"]), None))
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
@@ -97,11 +97,13 @@ class TestHashEmbedding(unittest.TestCase):
 
     def test_call(self):
         embedder = HashEmbedding.from_config(self._default_config)
-        embedding = embedder(np.array(["one"]))
+        embedding = embedder((np.array(["one"]), None))
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
 
+#TODO: Add tests to cover context features
+#TODO: Add tests to cover sequence input / uses the attention layer
 class TestDeepHashEmbedding(unittest.TestCase):
 
     def setUp(self):
@@ -160,6 +162,6 @@ class TestDeepHashEmbedding(unittest.TestCase):
 
     def test_call(self):
         embedder = DeepHashEmbedding.from_config(self._default_config)
-        embedding = embedder(np.array(["one"]))
+        embedding = embedder((np.array(["one"]), None))
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."

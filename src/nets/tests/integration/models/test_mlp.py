@@ -8,12 +8,12 @@ from nets.models.mlp import MLP
 from nets.utils import get_obj
 
 from nets.tests.integration.models.base import \
-    DenseIntegrationMixin, ModelIntegrationABC
+    DenseIntegrationTrait, ModelIntegrationABC
 from nets.tests.utils import try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 
 
-class TestMLP(DenseIntegrationMixin, ModelIntegrationABC, TC):
+class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
 
     temp = os.path.join(os.getcwd(), "mlp-tmp-model")
 

@@ -11,10 +11,10 @@ from nets.models.mlp import MLP
 from nets.utils import get_obj
 
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    RecommenderIntegrationMixin, ListwiseRecommenderIntegrationMixin
+    RecommenderIntegrationTrait, ListwiseRecommenderIntegrationTrait
 
 
-class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
+class TestTwoTowerMultiTask(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
     """
     """
 
@@ -51,7 +51,7 @@ class TestTwoTowerMultiTask(RecommenderIntegrationMixin, ModelIntegrationABC, TC
 
 
 @skip
-class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationMixin, TestTwoTowerMultiTask):
+class TestListwiseTwoTowerMultiTask(ListwiseRecommenderIntegrationTrait, TestTwoTowerMultiTask):
     """
     """
 
