@@ -118,6 +118,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
         self._attention_key_dim = attention_key_dim
+        self._context_model = context_model
 
         self._context_tensor_flag = self._context_model is not None
         self._attention_tensor_flag = self._attention_key_dim is not None
@@ -125,7 +126,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins,
                 embedding_dim=self._hash_embedding_dim,
-                context_model=context_model
+                context_model=self._context_model
         )
         if self._attention_tensor_flag:
             self._mha = MultiHeadSelfAttention(
