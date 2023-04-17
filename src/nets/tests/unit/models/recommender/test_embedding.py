@@ -47,9 +47,7 @@ class TestStringEmbedding(unittest.TestCase):
             """.format(self._default_config, c)
 
     def test_call(self):
-        embedder = StringEmbedding(
-                vocab=self._vocab, embedding_dim=self._embedding_dim
-        )
+        embedder = StringEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
@@ -96,7 +94,7 @@ class TestHashEmbedding(unittest.TestCase):
             """.format(self._default_config, c)
 
     def test_call(self):
-        embedder = HashEmbedding.from_config(self._default_config)
+        embedder = HashEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
@@ -161,7 +159,7 @@ class TestDeepHashEmbedding(unittest.TestCase):
             """.format(self._default_config, c)
 
     def test_call(self):
-        embedder = DeepHashEmbedding.from_config(self._default_config)
+        embedder = DeepHashEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
