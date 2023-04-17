@@ -7,10 +7,10 @@ from nets.models.recommender.retrieval import TwoTowerRetrieval
 from nets.models.recommender.embedding import DeepHashEmbedding
 from nets.models.recommender.embedding import HashEmbedding
 
-from nets.tests.utils import obj_from_config, try_except_assertion_decorator, \
-    TrainSanityAssertionCallback
 from nets.tests.integration.models.base import ModelIntegrationABC, \
     RecommenderIntegrationTrait
+from nets.tests.utils import *
+
 
 class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
     """

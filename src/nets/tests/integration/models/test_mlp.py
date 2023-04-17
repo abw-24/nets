@@ -7,8 +7,7 @@ from nets.models.mlp import MLP
 
 from nets.tests.integration.models.base import \
     DenseIntegrationTrait, ModelIntegrationABC
-from nets.tests.utils import obj_from_config, try_except_assertion_decorator, \
-    TrainSanityAssertionCallback
+from nets.tests.utils import *
 
 
 class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
