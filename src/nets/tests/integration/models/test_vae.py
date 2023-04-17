@@ -98,21 +98,6 @@ class TestVAE(DenseIntegrationTrait, ModelIntegrationABC, TC):
                 callbacks=[TrainSanityAssertionCallback()]
         )
 
-    def test_predict(self):
-        """
-        Test that prediction works and returns the right type.
-        """
-
-        model = self._generate_default_compiled_model()
-        model.fit(
-                self._train,
-                epochs=self._epochs
-        )
-        predictions = model.predict(self._x_test)
-
-        assert isinstance(predictions, np.ndarray)\
-               or isinstance(predictions, tf.Tensor)
-
     @try_except_assertion_decorator
     def test_save_and_load(self):
         """

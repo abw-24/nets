@@ -99,32 +99,3 @@ class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
                 callbacks=[TrainSanityAssertionCallback()]
         )
 
-    def test_predict(self):
-        """
-        Test that prediction works and returns the right type.
-        """
-        model = self._generate_default_compiled_model()
-        model.fit(
-                self._train,
-                epochs=self._epochs,
-                callbacks=[TrainSanityAssertionCallback()]
-        )
-        predictions = model.predict(self._x_test)
-
-        assert isinstance(predictions, np.ndarray)\
-               or isinstance(predictions, tf.Tensor)
-
-    @try_except_assertion_decorator
-    def test_save_and_load(self):
-        """
-        Test that saving and loading works.
-        """
-
-        model = self._generate_default_compiled_model()
-        model.fit(
-                self._train,
-                epochs=self._epochs,
-                callbacks=[TrainSanityAssertionCallback()]
-        )
-        model.save(self.temp)
-        _ = tf.keras.models.load_model(self.temp)
