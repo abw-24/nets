@@ -27,14 +27,19 @@ class StringEmbedding(BaseTFKerasModel):
                 len(self._vocab) + 1, embedding_dim
         )
 
-    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            embeddings = tf.concat([embeddings, context_embeddings], 1)
+            # If the dimension is 3 or greater, assume we have sequential data
+            # and concatenate along the second dimension. Otherwise concatenate
+            # along the first.
+            if len(context.shape) >= 3:
+                embeddings = tf.concat([embeddings, context_embeddings], 2)
+            else:
+                embeddings = tf.concat([embeddings, context_embeddings], 1)
 
         return embeddings
 
@@ -72,14 +77,19 @@ class HashEmbedding(BaseTFKerasModel):
                 self._hash_bins, embedding_dim
         )
 
-    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            embeddings = tf.concat([embeddings, context_embeddings], 1)
+            # If the dimension is 3 or greater, assume we have sequential data
+            # and concatenate along the second dimension. Otherwise concatenate
+            # along the first.
+            if context.shape.rank >= 3:
+                embeddings = tf.concat([embeddings, context_embeddings], 2)
+            else:
+                embeddings = tf.concat([embeddings, context_embeddings], 1)
 
         return embeddings
 
@@ -120,15 +130,15 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._attention_key_dim = attention_key_dim
         self._context_model = context_model
 
-        self._context_tensor_flag = self._context_model is not None
-        self._attention_tensor_flag = self._attention_key_dim is not None
+        self._context_flag = self._context_model is not None
+        self._attention_flag = self._attention_key_dim is not None
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins,
                 embedding_dim=self._hash_embedding_dim,
                 context_model=self._context_model
         )
-        if self._attention_tensor_flag:
+        if self._attention_flag:
             self._mha = MultiHeadSelfAttention(
                     num_heads=4,
                     key_dim=self._attention_key_dim,
@@ -146,7 +156,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         # HashEmbedding layer handles parsing the id and context
         raw_embeddings = self._embedding.__call__(inputs)
 
-        if self._attention_tensor_flag:
+        if self._attention_flag:
             raw_embeddings = self._mha.__call__(raw_embeddings)
 
         embeddings = self._final_layer.__call__(
