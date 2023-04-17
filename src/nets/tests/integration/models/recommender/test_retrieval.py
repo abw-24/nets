@@ -6,13 +6,11 @@ from unittest import TestCase as TC
 from nets.models.recommender.retrieval import TwoTowerRetrieval
 from nets.models.recommender.embedding import DeepHashEmbedding
 from nets.models.recommender.embedding import HashEmbedding
-from nets.utils import get_obj
 
-from nets.tests.utils import try_except_assertion_decorator, \
+from nets.tests.utils import obj_from_config, try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 from nets.tests.integration.models.base import ModelIntegrationABC, \
     RecommenderIntegrationTrait
-
 
 class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
     """
@@ -34,7 +32,7 @@ class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC
                 candidate_id=self._candidate_id
         )
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer)
+            optimizer=obj_from_config(tf.keras.optimizers, self._optimizer)
         )
         return model
 
@@ -52,7 +50,7 @@ class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC
                 candidate_id=self._candidate_id
         )
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer)
+            optimizer=obj_from_config(tf.keras.optimizers, self._optimizer)
         )
         return model
 

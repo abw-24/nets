@@ -1,15 +1,13 @@
 
 from unittest import TestCase as TC
 import tensorflow as tf
-import numpy as np
 import os
 
 from nets.models.mlp import MLP
-from nets.utils import get_obj
 
 from nets.tests.integration.models.base import \
     DenseIntegrationTrait, ModelIntegrationABC
-from nets.tests.utils import try_except_assertion_decorator, \
+from nets.tests.utils import obj_from_config, try_except_assertion_decorator, \
     TrainSanityAssertionCallback
 
 
@@ -43,8 +41,8 @@ class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
         )
         model.build(input_shape=self._input_shape)
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer),
-            loss=get_obj(tf.keras.losses, self._loss)
+            optimizer=obj_from_config(tf.keras.optimizers, self._optimizer),
+            loss=obj_from_config(tf.keras.losses, self._loss)
         )
         return model
 
@@ -62,8 +60,8 @@ class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
             output_activation=self._output_activation
         )
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer),
-            loss=get_obj(tf.keras.losses, self._loss)
+            optimizer=obj_from_config(tf.keras.optimizers, self._optimizer),
+            loss=obj_from_config(tf.keras.losses, self._loss)
         )
 
     def test_fit_complex(self):
@@ -83,15 +81,15 @@ class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
                 activation=self._activation,
                 output_dim=self._output_dim,
                 output_activation=self._output_activation,
-                activity_regularizer=get_obj(
+                activity_regularizer=obj_from_config(
                         tf.keras.regularizers, activity_regularizer
                 ),
                 spectral_norm=spectral_norm
             )
         model.build(input_shape=self._input_shape)
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, optimizer),
-            loss=get_obj(tf.keras.losses, loss)
+            optimizer=obj_from_config(tf.keras.optimizers, optimizer),
+            loss=obj_from_config(tf.keras.losses, loss)
         )
         model.fit(
                 self._train,

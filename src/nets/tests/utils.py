@@ -49,7 +49,7 @@ def try_except_assertion_decorator(fn):
     return wrapper
 
 
-def get_obj(module, obj_dict=None):
+def obj_from_config(module, obj_dict=None):
     """
     Create a class instance from a given module with keyword args.
     Intended to aid JSON model configuration.
