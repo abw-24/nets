@@ -18,7 +18,8 @@ class StringEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
-        self._context_flag = self._context_model is not None
+        # Create a tf constant boolean for checking during call
+        self._context_flag = tf.constant(self._context_model is not None)
 
         self._lookup = tf.keras.layers.StringLookup(
                 vocabulary=self._vocab, mask_token=None
@@ -36,7 +37,7 @@ class StringEmbedding(BaseTFKerasModel):
             # If the dimension is 3 or greater, assume we have sequential data
             # and concatenate along the second dimension. Otherwise concatenate
             # along the first.
-            if len(context.shape) >= 3:
+            if context.shape.rank >= 3:
                 embeddings = tf.concat([embeddings, context_embeddings], 2)
             else:
                 embeddings = tf.concat([embeddings, context_embeddings], 1)
@@ -52,9 +53,9 @@ class StringEmbedding(BaseTFKerasModel):
         })
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    @property
+    def context_model(self):
+        return self._context_model
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -69,7 +70,9 @@ class HashEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
-        self._context_flag = self._context_model is not None
+        # Create a tf constant boolean for checking during call
+        self._context_flag = tf.constant(self._context_model is not None)
+
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
         )
@@ -102,9 +105,9 @@ class HashEmbedding(BaseTFKerasModel):
         })
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    @property
+    def context_model(self):
+        return self._context_model
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -130,8 +133,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._attention_key_dim = attention_key_dim
         self._context_model = context_model
 
-        self._context_flag = self._context_model is not None
-        self._attention_flag = self._attention_key_dim is not None
+        self._attention_flag = tf.constant(self._attention_key_dim is not None)
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins,
@@ -179,6 +181,6 @@ class DeepHashEmbedding(BaseTFKerasModel):
         config.update(self._dense_config)
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    @property
+    def context_model(self):
+        return self._context_model
