@@ -2,6 +2,7 @@
 from abc import abstractmethod, ABC
 import os
 import shutil
+import numpy as np
 
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
@@ -85,7 +86,7 @@ class ModelIntegrationABC(ABC):
 
 class ModelIntegrationTrait(object):
     """
-    Common concrete methods for all integration mixin flavors.
+    Common concrete methods for all integration trait flavors.
         - `tearDown` deletes any artifacts saved at `temp` (may need to be
         overwritten by certain children)
         - `test_build` is a generic test for creating the default model
@@ -123,8 +124,8 @@ class ModelIntegrationTrait(object):
 class RecommenderIntegrationTrait(ModelIntegrationTrait):
 
     """
-    Mixin for recommender model testing. Implements several of the base ABCs
-    abstract methods:
+    Base trait for recommender model testing. Implements several of the base
+    ABC's abstract methods:
         - `setUpClass` reads and preps movielens data
         - `tearDownClass` deletes movielens data and any artifacts at temp path
         - `setUp` creates fresh default params for each test method (may need
@@ -234,7 +235,7 @@ class RecommenderIntegrationTrait(ModelIntegrationTrait):
 
 class ListwiseRecommenderIntegrationTrait(RecommenderIntegrationTrait):
     """
-    Listwise flavor of recommender integration mixin. Uses tfrs helpers
+    Listwise flavor of recommender integration trait. Uses tfrs helpers
     to reformat ratings data for listwise loss. Currently does not work
     as expected...
     """
@@ -274,7 +275,7 @@ class ListwiseRecommenderIntegrationTrait(RecommenderIntegrationTrait):
 class DenseIntegrationTrait(ModelIntegrationTrait):
 
     """
-    Mixin for dense model testing. Implements several of the base ABCs
+    Trait for dense model testing. Implements several of the base ABCs
     abstract methods:
         - `setUpClass` reads and preps mnist data
         - `tearDownClass` deletes mnist movielens data
@@ -308,3 +309,33 @@ class DenseIntegrationTrait(ModelIntegrationTrait):
 
         if os.path.exists(cls.temp):
             shutil.rmtree(cls.temp)
+
+    def test_predict(self):
+        """
+        Test that prediction works and returns the right type.
+        """
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train,
+                epochs=self._epochs,
+                callbacks=[TrainSanityAssertionCallback()]
+        )
+        predictions = model.predict(self._x_test)
+
+        assert isinstance(predictions, np.ndarray)\
+               or isinstance(predictions, tf.Tensor)
+
+    @try_except_assertion_decorator
+    def test_save_and_load(self):
+        """
+        Test that saving and loading works.
+        """
+
+        model = self._generate_default_compiled_model()
+        model.fit(
+                self._train,
+                epochs=self._epochs,
+                callbacks=[TrainSanityAssertionCallback()]
+        )
+        model.save(self.temp)
+        _ = tf.keras.models.load_model(self.temp)
