@@ -19,7 +19,7 @@ class StringEmbedding(BaseTFKerasModel):
         self._context_model = context_model
 
         # Create a tf constant boolean for checking during call
-        self._context_flag = tf.constant(self._context_model is not None)
+        self._context_flag = self._context_model is not None
 
         self._lookup = tf.keras.layers.StringLookup(
                 vocabulary=self._vocab, mask_token=None
@@ -34,13 +34,11 @@ class StringEmbedding(BaseTFKerasModel):
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            # If the dimension is 3 or greater, assume we have sequential data
-            # and concatenate along the second dimension. Otherwise concatenate
-            # along the first.
-            if context.shape.rank >= 3:
-                embeddings = tf.concat([embeddings, context_embeddings], 2)
-            else:
-                embeddings = tf.concat([embeddings, context_embeddings], 1)
+            # Concat along the last axis.
+            # Note: this assumes a "channels last" data format!
+            embeddings = tf.concat(
+                    [embeddings, context_embeddings], -1
+            )
 
         return embeddings
 
@@ -71,7 +69,7 @@ class HashEmbedding(BaseTFKerasModel):
         self._context_model = context_model
 
         # Create a tf constant boolean for checking during call
-        self._context_flag = tf.constant(self._context_model is not None)
+        self._context_flag = self._context_model is not None
 
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
@@ -86,13 +84,11 @@ class HashEmbedding(BaseTFKerasModel):
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            # If the dimension is 3 or greater, assume we have sequential data
-            # and concatenate along the second dimension. Otherwise concatenate
-            # along the first.
-            if context.shape.rank >= 3:
-                embeddings = tf.concat([embeddings, context_embeddings], 2)
-            else:
-                embeddings = tf.concat([embeddings, context_embeddings], 1)
+            # Concat along the last axis.
+            # Note: this assumes a "channels last" data format!
+            embeddings = tf.concat(
+                    [embeddings, context_embeddings], -1
+            )
 
         return embeddings
 
@@ -133,7 +129,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._attention_key_dim = attention_key_dim
         self._context_model = context_model
 
-        self._attention_flag = tf.constant(self._attention_key_dim is not None)
+        self._attention_flag = self._attention_key_dim is not None
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins,
