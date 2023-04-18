@@ -9,8 +9,6 @@ from .base import TwoTowerABC, TwoTowerTrait
 @tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
 
-    """
-    """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
                  query_id, candidate_id, query_context_features=None,
                  candidate_context_features=None, name="TwoTowerRanking"):
@@ -43,7 +41,7 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
         candidate_embeddings = self._candidate_model_with_context(inputs)
 
         return self._target_model.__call__(tf.concat(
-                values=[query_embeddings, candidate_embeddings], axis=1
+                [query_embeddings, candidate_embeddings], -1
         ))
 
     @tf.function
@@ -70,6 +68,14 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
 class ListwiseTwoTowerRanking(TwoTowerRanking):
 
     """
+    Listwise two tower ranking.
+
+    Assumes `query_model` outputs are of shape (batch_size x model_dim),
+     while `candidate_model` outputs are of shape (batch_size, n_candidates,
+      model_dim).
+
+    `query_model` embeddings are duplicated and concatenated with each
+    `candidate_model` embedding to complete the ranking model inputs.
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
                  query_id, candidate_id, query_context_features=None,
@@ -97,9 +103,10 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
         query_embeddings = self._query_model_with_context(inputs)
         candidate_embeddings = self._candidate_model_with_context(inputs)
 
-        list_length = inputs[self._candidate_id].shape[1]
+        n_candidates = inputs[self._candidate_id].shape[1]
+
         query_embedding_vec = tf.repeat(
-                tf.expand_dims(query_embeddings, 1), [list_length], axis=1
+                tf.expand_dims(query_embeddings, 1), [n_candidates], axis=1
         )
 
         concatenated_embeddings = tf.concat(

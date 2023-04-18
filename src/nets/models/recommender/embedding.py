@@ -18,6 +18,7 @@ class StringEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
+        # Create a tf constant boolean for checking during call
         self._context_flag = self._context_model is not None
 
         self._lookup = tf.keras.layers.StringLookup(
@@ -27,14 +28,17 @@ class StringEmbedding(BaseTFKerasModel):
                 len(self._vocab) + 1, embedding_dim
         )
 
-    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            embeddings = tf.concat([embeddings, context_embeddings], 1)
+            # Concat along the last axis.
+            # Note: this assumes a "channels last" data format!
+            embeddings = tf.concat(
+                    [embeddings, context_embeddings], -1
+            )
 
         return embeddings
 
@@ -47,9 +51,9 @@ class StringEmbedding(BaseTFKerasModel):
         })
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    @property
+    def context_model(self):
+        return self._context_model
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -64,7 +68,9 @@ class HashEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
 
+        # Create a tf constant boolean for checking during call
         self._context_flag = self._context_model is not None
+
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
         )
@@ -72,14 +78,17 @@ class HashEmbedding(BaseTFKerasModel):
                 self._hash_bins, embedding_dim
         )
 
-    # TODO: consider context handling for sequential input?
     def call(self, inputs, training=True):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            embeddings = tf.concat([embeddings, context_embeddings], 1)
+            # Concat along the last axis.
+            # Note: this assumes a "channels last" data format!
+            embeddings = tf.concat(
+                    [embeddings, context_embeddings], -1
+            )
 
         return embeddings
 
@@ -92,9 +101,9 @@ class HashEmbedding(BaseTFKerasModel):
         })
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    @property
+    def context_model(self):
+        return self._context_model
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -120,15 +129,14 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._attention_key_dim = attention_key_dim
         self._context_model = context_model
 
-        self._context_tensor_flag = self._context_model is not None
-        self._attention_tensor_flag = self._attention_key_dim is not None
+        self._attention_flag = self._attention_key_dim is not None
 
         self._embedding = HashEmbedding(
                 hash_bins=self._hash_bins,
                 embedding_dim=self._hash_embedding_dim,
                 context_model=self._context_model
         )
-        if self._attention_tensor_flag:
+        if self._attention_flag:
             self._mha = MultiHeadSelfAttention(
                     num_heads=4,
                     key_dim=self._attention_key_dim,
@@ -146,7 +154,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         # HashEmbedding layer handles parsing the id and context
         raw_embeddings = self._embedding.__call__(inputs)
 
-        if self._attention_tensor_flag:
+        if self._attention_flag:
             raw_embeddings = self._mha.__call__(raw_embeddings)
 
         embeddings = self._final_layer.__call__(
@@ -169,6 +177,6 @@ class DeepHashEmbedding(BaseTFKerasModel):
         config.update(self._dense_config)
         return config
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
+    @property
+    def context_model(self):
+        return self._context_model

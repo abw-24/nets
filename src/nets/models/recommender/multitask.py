@@ -10,6 +10,9 @@ from .base import TwoTowerABC, TwoTowerTrait
 class TwoTowerMultiTask(TwoTowerABC, TwoTowerTrait):
 
     """
+    Pointwise two tower ranking.
+
+    Assumes `query_model` and `candidate_model` outputs are of the same shape.
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
                  query_id, candidate_id, balance=0.5, query_context_features=None,
@@ -47,8 +50,10 @@ class TwoTowerMultiTask(TwoTowerABC, TwoTowerTrait):
         query_embeddings = self._query_model_with_context(inputs)
         candidate_embeddings = self._candidate_model_with_context(inputs)
 
+        # Concat along the last axis.
+        # Note: this assumes a "channels last" data format!
         rank_prediction = self._target_model.__call__(tf.concat(
-                values=[query_embeddings, candidate_embeddings], axis=1
+                [query_embeddings, candidate_embeddings], -1
         ))
 
         return (query_embeddings, candidate_embeddings, rank_prediction)
@@ -66,7 +71,7 @@ class TwoTowerMultiTask(TwoTowerABC, TwoTowerTrait):
         )
         rank_loss = self._rank_task.__call__(
                 labels=labels,
-                predictions=tf.squeeze(scores, axis=-1),
+                predictions=scores,
                 compute_metrics=not training
         )
 
@@ -78,7 +83,14 @@ class TwoTowerMultiTask(TwoTowerABC, TwoTowerTrait):
 class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
 
     """
+    Listwise two tower ranking.
+
+    Assumes `query_model` outputs are of shape (batch_size, ..., model_dim),
+    while `candidate_model` outputs are of shape (batch_size, n_candidates,
+    ..., model_dim). `query_model` embeddings are duplicated and concatenated with
+    each `candidate_model` embedding to complete the ranking model inputs.
     """
+
     def __init__(self, target_model, query_model, candidate_model, rank_target,
                  query_id, candidate_id, balance=0.5, query_context_features=None,
                  candidate_context_features=None, name="ListwiseTwoTowerMultitask"):
@@ -108,14 +120,14 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
         query_embeddings = self._query_model_with_context(inputs)
         candidate_embeddings = self._candidate_model_with_context(inputs)
 
-        list_length = inputs[self._candidate_id].shape[1]
+        n_candidates = inputs[self._candidate_id].shape[1]
 
         query_embedding_vec = tf.repeat(
-                tf.expand_dims(query_embeddings, 1), [list_length], axis=1
+                tf.expand_dims(query_embeddings, 1), [n_candidates], axis=1
         )
 
         concatenated_embeddings = tf.concat(
-                [query_embedding_vec, candidate_embeddings], 2
+                [query_embedding_vec, candidate_embeddings], -1
         )
 
         rank_prediction = self._target_model.__call__(concatenated_embeddings)
@@ -141,4 +153,3 @@ class ListwiseTwoTowerMultiTask(TwoTowerMultiTask):
 
         return (self._rank_weight * rank_loss
                 + self._retrieval_weight * retrieval_loss)
-
