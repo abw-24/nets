@@ -115,9 +115,10 @@ class DeepHashEmbedding(BaseTFKerasModel):
         "spectral_norm": True
     }
 
-    def __init__(self, hash_bins=200000, hash_embedding_dim=64,
-                 embedding_dim=16, context_model=None, attention_key_dim=None,
-                 name="DeepHashEmbedding", **kwargs):
+    def __init__(self, embedding=None, hash_bins=200000, hash_embedding_dim=64,
+                 embedding_dim=16, context_model=None, attention_flag=False,
+                 attention_key_dim=128, attention_heads=4, attention_mask=False,
+                 attention_pooling=True, name="DeepHashEmbedding", **kwargs):
 
         super().__init__(name=name)
 
@@ -126,21 +127,32 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._hash_bins = hash_bins
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
-        self._attention_key_dim = attention_key_dim
         self._context_model = context_model
+        self._attention_key_dim = attention_key_dim
+        self._attention_heads = attention_heads
+        self._attention_mask = attention_mask
+        self._attention_pooling = attention_pooling
+        self._attention_concat = not self._attention_pooling
 
-        self._attention_flag = self._attention_key_dim is not None
+        self._attention_flag = attention_flag
 
-        self._embedding = HashEmbedding(
-                hash_bins=self._hash_bins,
-                embedding_dim=self._hash_embedding_dim,
-                context_model=self._context_model
-        )
+        # If we didn't receive an embedding model, create one
+        if embedding is None:
+            self._embedding = HashEmbedding(
+                    hash_bins=self._hash_bins,
+                    embedding_dim=self._hash_embedding_dim,
+                    context_model=self._context_model
+            )
+        else:
+            self._embedding = embedding
+
         if self._attention_flag:
             self._mha = MultiHeadSelfAttention(
-                    num_heads=4,
+                    num_heads=self._attention_heads,
                     key_dim=self._attention_key_dim,
-                    masking=False
+                    masking=self._attention_mask,
+                    pooling=self._attention_pooling,
+                    concat=self._attention_concat
             )
         self._dense_block = DenseBlock.from_config(
                 self._dense_config
@@ -172,7 +184,10 @@ class DeepHashEmbedding(BaseTFKerasModel):
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "attention_key_dim": self._attention_key_dim
+            "attention_key_dim": self._attention_key_dim,
+            "attention_heads": self._attention_heads,
+            "attention_mask": self._attention_mask,
+            "attention_pooling": self._attention_pooling
         })
         config.update(self._dense_config)
         return config
