@@ -4,11 +4,8 @@ Tensorflow 2.x network architectures
 * Focus is on neural recommenders (see `nets.models.recommeder` modules) and representation learning (see `nets.models.vae`)
 * Models are subclassed from `tf.keras.Model` and `tfrs.models.Model` to retain the high-level `keras` APIs
 * Tensor computations are primarily housed in custom block layers and/or submodels, making for easy saving and reuse
-* Test suite can be run with `pytest` as the test runner:
-```
-pytest src/nets --disable-warnings
-```
-* Note: Integration tests do not mock training or saving, so the full suite may take a few minutes to run
+* Test suite can be run with `pytest` as the test runner
+    * Note: Integration tests do not mock training or saving, so the full suite may take a few minutes to run
 
 ### Example usage: User-item Two Tower Retrieval + Ranking
 ```
