@@ -52,24 +52,6 @@ class MLP(BaseTFKerasModel):
         )
         super().build(input_shape)
 
-    @tf.function
-    def train_step(self, data):
-
-        x, y = data
-        # Use the graph for the forward pass and compute the compiled loss
-        with tf.GradientTape() as tape:
-            y_hat = self.__call__(x)
-            loss = self.compiled_loss(y, y_hat)
-        # Compute gradients
-        gradients = tape.gradient(loss, self._dense_block.trainable_variables)
-        # Apply gradients
-        self.optimizer.apply_gradients(
-                zip(gradients, self._dense_block.trainable_variables)
-        )
-        # Update the compiled metrics
-        self.compiled_metrics.update_state(y, y_hat)
-        return {m.name: m.result() for m in self.metrics}
-
     def call(self, inputs, training=True):
         return self._output_layer(self._dense_block(self._input_layer(inputs)))
 

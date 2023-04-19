@@ -148,7 +148,11 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
 @tf.keras.utils.register_keras_serializable("nets")
 class GaussianDenseVAE(BaseTFKerasModel):
     """
-    Variational autoencoder with dense encoding/decoding layers.
+    Variational autoencoder with dense encoding/decoding layers. Defaults
+    to Max Mean Discrepancy as the difference-in-distribution loss per the
+    InfoVAE line of research on learning meaningful latent codes.
+
+    Paper: https://arxiv.org/pdf/1706.02262.pdf
     """
 
     def __init__(self, encoding_dims, latent_dim, input_shape=None,
@@ -246,7 +250,6 @@ class GaussianDenseVAE(BaseTFKerasModel):
                     tf.reshape(x, (-1, self._input_shape[-1])), reconstruction
             )
 
-            #TODO: refactor if statements to use tensorflow logical gates
             if self._discrepancy_loss == "mmd":
                 true_samples = tf.random.normal(tf.stack(
                         [self._input_shape[0], self._latent_dim]

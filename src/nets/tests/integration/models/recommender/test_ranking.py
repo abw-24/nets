@@ -8,12 +8,13 @@ from nets.models.recommender.ranking import TwoTowerRanking, \
     ListwiseTwoTowerRanking
 from nets.models.recommender.embedding import HashEmbedding
 from nets.models.mlp import MLP
-from nets.utils import get_obj
 
 from nets.tests.integration.models.base import ModelIntegrationABC, \
     RecommenderIntegrationTrait, ListwiseRecommenderIntegrationTrait
+from nets.tests.utils import obj_from_config
 
 
+#TODO: add context model tests
 class TestTwoTowerRanking(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
     """
     """
@@ -44,7 +45,7 @@ class TestTwoTowerRanking(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
                 rank_target=self._rank_target,
         )
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer)
+            optimizer=obj_from_config(tf.keras.optimizers, self._optimizer)
         )
         return model
 
@@ -80,6 +81,6 @@ class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationTrait, TestTwoTo
                 rank_target=self._rank_target,
         )
         model.compile(
-            optimizer=get_obj(tf.keras.optimizers, self._optimizer)
+            optimizer=obj_from_config(tf.keras.optimizers, self._optimizer)
         )
         return model

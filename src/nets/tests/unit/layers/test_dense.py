@@ -1,7 +1,6 @@
 import unittest
 
 from nets.layers.dense import DenseBlock
-from nets.utils import get_obj
 
 from nets.tests.utils import *
 
@@ -31,8 +30,8 @@ class TestDense(unittest.TestCase):
 
     @try_except_assertion_decorator
     def test_build_complex(self):
-        activity_regularizer = get_obj(tf.keras.regularizers, {"L2": {}})
-        kernel_regularizer = get_obj(tf.keras.regularizers, {"L2": {}})
+        activity_regularizer = obj_from_config(tf.keras.regularizers, {"L2": {}})
+        kernel_regularizer = obj_from_config(tf.keras.regularizers, {"L2": {}})
         _ = DenseBlock(
             hidden_dims=self._hidden_dims,
             activation=self._activation,

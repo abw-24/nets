@@ -40,10 +40,7 @@ class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
     @tf.function
     def compute_loss(self, features, training=True):
         """
-        Compute loss for a batch by invoking the task.
-        :param features: Feature batch
-        :param training: Training flag
-        :return: Loss dictionary
+        Compute loss for a batch by invoking the task
         """
         query_embeddings, candidate_embeddings = self.__call__(features)
         return self._task.__call__(
