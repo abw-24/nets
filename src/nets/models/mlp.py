@@ -53,7 +53,11 @@ class MLP(BaseTFKerasModel):
         super().build(input_shape)
 
     def call(self, inputs, training=True):
-        return self._output_layer(self._dense_block(self._input_layer(inputs)))
+        return self._output_layer.__call__(
+                self._dense_block.__call__(
+                        self._input_layer.__call__(inputs)
+                )
+        )
 
     def get_config(self):
         config = super().get_config()
