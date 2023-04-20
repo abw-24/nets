@@ -40,6 +40,7 @@ class DenseBlock(tf.keras.layers.Layer):
 
     def call(self, inputs, training=False):
         outputs = inputs
+        # Should be AutoGraph convertible -- no side effects
         for layer in self._block_layers:
             outputs = layer.__call__(outputs)
         return outputs
@@ -54,7 +55,3 @@ class DenseBlock(tf.keras.layers.Layer):
             "spectral_norm": self._spectral_norm
         })
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)

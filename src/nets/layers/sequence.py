@@ -25,26 +25,17 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         self._pooling = pooling
         self._concat = concat
 
-        self._pooling_tensor_flag = tf.convert_to_tensor(
-                self._pooling, dtype=tf.bool
-        )
-        self._concat_tensor_flag = tf.convert_to_tensor(
-                self._concat, dtype=tf.bool
-        )
         self._attention_layer = tf.keras.layers.MultiHeadAttention(
                 num_heads=num_heads, key_dim=key_dim
         )
         self._add_layer = tf.keras.layers.Add()
         self._layer_norm = tf.keras.layers.LayerNormalization()
 
-        if self._pooling_tensor_flag:
+        if self._pooling:
             self._global_pool = tf.keras.layers.GlobalAveragePooling1D()
 
-        if self._concat_tensor_flag:
+        if self._concat:
             self._concat_layer = tf.keras.layers.Concatenate()
-
-    def build(self, input_shape):
-        super().build(input_shape)
 
     def call(self, inputs):
         output = self._attention_layer.__call__(
@@ -53,12 +44,15 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
                 key=inputs,
                 use_causal_mask=self._masking
         )
-        embedding = self._add_layer.__call__([inputs, output])
-        if self._pooling_tensor_flag:
+        embedding = self._layer_norm.__call__(
+                self._add_layer.__call__([inputs, output])
+        )
+
+        if self._pooling:
             embedding = self._global_pool.__call__(embedding)
-        elif self._concat_tensor_flag:
-            embedding = self._concat_layer(embedding, axis=2)
-        embedding = self._layer_norm.__call__(embedding)
+        elif self._concat:
+            embedding = self._concat_layer.__call__(embedding)
+
         return embedding
 
     def get_config(self):

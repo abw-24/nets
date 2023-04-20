@@ -4,6 +4,7 @@ import tensorflow as tf
 from nets.models.base import BaseTFKerasModel
 from nets.layers.dense import DenseBlock
 from nets.layers.sequence import MultiHeadSelfAttention
+from nets.models.mixture import GatedMixtureABC
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -115,9 +116,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
         "spectral_norm": True
     }
 
-    def __init__(self, hash_bins=200000, hash_embedding_dim=64,
-                 embedding_dim=16, context_model=None, attention_key_dim=None,
-                 name="DeepHashEmbedding", **kwargs):
+    def __init__(self, hash_bins=200000, hash_embedding_dim=64, embedding_dim=16,
+                context_model=None, name="DeepHashEmbedding", **kwargs):
 
         super().__init__(name=name)
 
@@ -126,22 +126,14 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._hash_bins = hash_bins
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
-        self._attention_key_dim = attention_key_dim
         self._context_model = context_model
 
-        self._attention_flag = self._attention_key_dim is not None
-
         self._embedding = HashEmbedding(
-                hash_bins=self._hash_bins,
-                embedding_dim=self._hash_embedding_dim,
-                context_model=self._context_model
+                    hash_bins=self._hash_bins,
+                    embedding_dim=self._hash_embedding_dim,
+                    context_model=self._context_model
         )
-        if self._attention_flag:
-            self._mha = MultiHeadSelfAttention(
-                    num_heads=4,
-                    key_dim=self._attention_key_dim,
-                    masking=False
-            )
+
         self._dense_block = DenseBlock.from_config(
                 self._dense_config
         )
@@ -151,11 +143,149 @@ class DeepHashEmbedding(BaseTFKerasModel):
 
     def call(self, inputs, training=True):
 
-        # HashEmbedding layer handles parsing the id and context
+        # Embedding layer handles parsing the id and context
         raw_embeddings = self._embedding.__call__(inputs)
 
-        if self._attention_flag:
-            raw_embeddings = self._mha.__call__(raw_embeddings)
+        embeddings = self._final_layer.__call__(
+                self._dense_block.__call__(
+                    raw_embeddings
+                )
+        )
+
+        return embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "hash_bins": self._hash_bins,
+            "hash_embedding_dim": self._hash_embedding_dim,
+            "embedding_dim": self._embedding_dim,
+            "context_model": self._context_model
+        })
+        config.update(self._dense_config)
+        return config
+
+    @property
+    def context_model(self):
+        return self._context_model
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
+    """
+    Sequential hash embeddings with multi-head self attention.
+    """
+
+    def __init__(self, hash_bins=200000, hash_embedding_dim=64,
+                 embedding_dim=16, context_model=None, gru_dim=None,
+                 last_n=None, name="SequentialDeepHashEmbeddingWithGRU",
+                 **kwargs):
+
+        super().__init__(
+            hash_bins=hash_bins,
+            hash_embedding_dim=hash_embedding_dim,
+            embedding_dim=embedding_dim,
+            context_model=context_model,
+            name=name,
+            **kwargs
+        )
+
+        self._gru_dim = gru_dim
+        if self._gru_dim is None:
+            self._gru_dim = self._embedding_dim
+
+        self._last_n = last_n
+        self._last_n_flag = self._last_n is not None
+
+        self._gru = tf.keras.layers.GRUCell(units=self._gru_dim)
+
+    def call(self, inputs, training=True):
+
+        # Embedding layer handles parsing the id and context
+        raw_embeddings = self._embedding.__call__(inputs)
+
+        # If we only want to consider the last n inputs, slice.
+        # Note: this assumes a "channel last" input tensor of shape
+        # (batch_size, steps, embedding_dim)
+        if self._last_n_flag:
+            raw_embeddings = raw_embeddings[:, -self._last_n:, ...]
+
+        # GRU cell
+        gru_final_state = self._gru.__call__(raw_embeddings)
+
+        embeddings = self._final_layer.__call__(
+                self._dense_block.__call__(
+                    gru_final_state
+                )
+        )
+
+        return embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "hash_bins": self._hash_bins,
+            "hash_embedding_dim": self._hash_embedding_dim,
+            "embedding_dim": self._embedding_dim,
+            "context_model": self._context_model,
+            "gru_dim": self._gru_dim,
+            "last_n": self._last_n
+        })
+        config.update(self._dense_config)
+        return config
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
+    """
+    Sequential hash embeddings with multi-head self attention.
+    """
+
+    def __init__(self, hash_bins=200000, hash_embedding_dim=64,
+                 embedding_dim=16, context_model=None, attention_key_dim=128,
+                 attention_heads=4, attention_mask=False,
+                 attention_pooling=False, last_n=None,
+                 name="SequentialDeepHashEmbeddingWithAttention", **kwargs):
+
+        super().__init__(
+            hash_bins=hash_bins,
+            hash_embedding_dim=hash_embedding_dim,
+            embedding_dim=embedding_dim,
+            context_model=context_model,
+            name=name,
+            **kwargs
+        )
+
+        self._attention_key_dim = attention_key_dim
+        self._attention_heads = attention_heads
+        self._attention_mask = attention_mask
+        self._attention_pooling = attention_pooling
+        self._last_n = last_n
+
+        self._attention_concat = not self._attention_pooling
+        self._last_n_flag = self._last_n is not None
+
+        self._mha = MultiHeadSelfAttention(
+                num_heads=self._attention_heads,
+                key_dim=self._attention_key_dim,
+                masking=self._attention_mask,
+                pooling=self._attention_pooling,
+                concat=self._attention_concat
+        )
+
+    def call(self, inputs, training=True):
+
+        # Embedding layer handles parsing the id and context
+        raw_embeddings = self._embedding.__call__(inputs)
+
+        # If we only want to consider the last n inputs, slice.
+        # Note: this assumes a "channel last" input tensor of shape
+        # (batch_size, steps, embedding_dim)
+        if self._last_n_flag:
+            raw_embeddings = raw_embeddings[:, -self._last_n:, ...]
+
+        # Multi-head attention cell
+        raw_embeddings = self._mha.__call__(raw_embeddings)
 
         embeddings = self._final_layer.__call__(
                 self._dense_block.__call__(
@@ -172,11 +302,55 @@ class DeepHashEmbedding(BaseTFKerasModel):
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "attention_key_dim": self._attention_key_dim
+            "attention_key_dim": self._attention_key_dim,
+            "attention_heads": self._attention_heads,
+            "attention_mask": self._attention_mask,
+            "attention_pooling": self._attention_pooling,
+            "last_n": self._last_n
         })
         config.update(self._dense_config)
         return config
 
-    @property
-    def context_model(self):
-        return self._context_model
+
+@tf.keras.utils.register_keras_serializable("nets")
+class SequentialDeepHashEmbeddingMixture(GatedMixtureABC):
+
+    def __init__(self, hash_embedding_dim=128, embedding_dim=32,
+                 name="SequentialDeepHashEmbeddingMixture", **kwargs):
+
+        self._hash_embedding_dim = hash_embedding_dim
+        self._embedding_dim = embedding_dim
+
+        # Long range model is multi-head self attention + FF
+        long_range_model = SequentialDeepHashEmbeddingWithAttention(
+                hash_embedding_dim=self._hash_embeddings_dim,
+                embedding_dim=self._embedding_dim,
+                hidden_dims=[64],
+                attention_key_dim=128,
+                attention_heads=4,
+                attention_concat=True
+        )
+
+        # Short range model is GRU + FF
+        short_range_model = SequentialDeepHashEmbeddingWithGRU(
+                hash_embedding_dim=self._hash_embeddings_dim,
+                embedding_dim=self._embedding_dim,
+                hidden_dims=[64]
+        )
+
+        self._experts = [short_range_model, long_range_model]
+
+        super().__init__(
+                n_experts=2,
+                expert_dim=self._embedding_dim,
+                name=name,
+                **kwargs
+        )
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "hash_embedding_dim": self._hash_embedding_dim,
+            "embedding_dim": self._embedding_dim
+        })
+        return config
