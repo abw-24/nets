@@ -12,14 +12,10 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
     - If `pooling` is set to True, the MHA output is averaged over the
     timestep dimension.
     - If `concat` is set to True, the MHA timesteps are concatenated.
-    - If `last_n` is not None, only the last n attention outputs (in
-    the timestep dimension) will be returned. Note: timestep dimension
-    assumed to be the second dimension in the tensor (channels last).
     """
 
     def __init__(self, num_heads=4, key_dim=128, masking=False,
-                 pooling=False, concat=False, last_n=None,
-                 name="MultiHeadSelfAttention"):
+                 pooling=False, concat=False, name="MultiHeadSelfAttention"):
 
         super().__init__(name=name)
 
@@ -28,9 +24,6 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         self._masking = masking
         self._pooling = pooling
         self._concat = concat
-        self._last_n = last_n
-
-        self._last = self._last_n is not None
 
         self._attention_layer = tf.keras.layers.MultiHeadAttention(
                 num_heads=num_heads, key_dim=key_dim
@@ -59,8 +52,6 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
             embedding = self._global_pool.__call__(embedding)
         elif self._concat:
             embedding = self._concat_layer.__call__(embedding)
-        elif self._last:
-            embedding = embedding[:, -self._last_n:, ...]
 
         return embedding
 
@@ -71,7 +62,6 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
             "key_dim": self._key_dim,
             "masking": self._masking,
             "pooling": self._pooling,
-            "concat": self._concat,
-            "last_n": self._n
+            "concat": self._concat
         })
         return config
