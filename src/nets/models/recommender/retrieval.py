@@ -3,8 +3,8 @@ import tensorflow as tf
 import tensorflow_recommenders as tfrs
 
 from .base import TwoTowerABC, TwoTowerTrait
-from nets.models.recommender.embedding import HashEmbedding, DeepHashEmbedding
-from nets.layers.dense import GatedMixture
+from nets.models.recommender.embedding import DeepHashEmbedding, \
+    SequentialDeepHashEmbeddingMixture
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -13,9 +13,10 @@ class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
     """
     def __init__(self, query_model, candidate_model, query_id,
                  candidate_id, query_context_features=None,
-                 candidate_context_features=None, name="TwoTowerRetrieval"):
+                 candidate_context_features=None, name="TwoTowerRetrieval",
+                 **kwargs):
 
-        super().__init__(name=name)
+        super().__init__(name=name, **kwargs)
 
         self._task = tfrs.tasks.Retrieval()
 
@@ -53,57 +54,31 @@ class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
         )
 
 
-class MixtureOfAttentionExpertsRetrieval(TwoTowerRetrieval):
+@tf.keras.utils.register_keras_serializable("nets")
+class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
 
     """
-    Sequential mixture of experts (MoE). Experts are two multi-head attention
-    networks with
+    Sequential mixture of experts (MoE).
+
+     The sequential layers are not intended to be generative / trained
+     causally. Windows of historical items of a fixed size should be used
+      as the query model inputs, and a single item as the label.
     """
 
-    def __init__(self, query_id, candidate_id, share_embeddings=True,
-                 embedding_dim=32, attention_pooling=True,
+    def __init__(self, query_id, candidate_id, embedding_dim=32,
                  query_context_features=None, candidate_context_features=None,
-                 name="SelfAttentionMixtureOfExpertsRetrieval"):
+                 name="SelfAttentionMixtureOfExpertsRetrieval", **kwargs):
 
-        self._share_embeddings = share_embeddings
         self._embedding_dim = embedding_dim
-        self._attention_pooling = attention_pooling
         self._hash_embeddings_dim = 128
 
-        # If the experts share embeddings, create them
-        shared_embeddings = None
-        if self._share_embeddings:
-            shared_embeddings = HashEmbedding(
-                embedding_dim=self._hash_embeddings_dim
-            )
-
-        # Long range model has more heads, larger attention dim
-        long_range_model = DeepHashEmbedding(
-                embeddings=shared_embeddings,
-                hash_embedding_dim=self._hash_embeddings_dim,
-                embedding_dim=self._embedding_dim,
-                hidden_dims=[64],
-                attention_key_dim=128,
-                attention_heads=4,
-                attention_pooling=self._attention_pooling
+        # Query model is a sequential mixture -- see model for details
+        query_model = SequentialDeepHashEmbeddingMixture(
+                hash_embedding_dim=self._hash_embedding_dim,
+                embedding_dim=self._embedding_dim
         )
 
-        # Short range model with just 1 head, small attention dim
-        short_range_model = DeepHashEmbedding(
-                embeddings=shared_embeddings,
-                hash_embedding_dim=self._hash_embeddings_dim,
-                embedding_dim=self._embedding_dim,
-                hidden_dims=[64],
-                attention_key_dim=64,
-                attention_heads=1,
-                attention_pooling=self._attention_pooling
-        )
-
-        query_model = GatedMixture(
-            experts=[long_range_model, short_range_model],
-            expert_dim=self._embedding_dim
-        )
-
+        # Candidate model is a simple (non-sequential) hash embedder + FF
         candidate_model = DeepHashEmbedding(
                 hash_embedding_dim=self._hash_embeddings_dim,
                 hidden_dims=[64],
@@ -117,10 +92,6 @@ class MixtureOfAttentionExpertsRetrieval(TwoTowerRetrieval):
                 candidate_id=candidate_id,
                 query_context_features=query_context_features,
                 candidate_context_features=candidate_context_features,
-                name=name
+                name=name,
+                **kwargs
         )
-
-    def build(self, input_shape):
-        # Make sure to build the gated mixture of experts model
-        self._query_model.build(input_shape=input_shape)
-        super().build(input_shape=input_shape)
