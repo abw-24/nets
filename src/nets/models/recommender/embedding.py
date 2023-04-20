@@ -4,6 +4,7 @@ import tensorflow as tf
 from nets.models.base import BaseTFKerasModel
 from nets.layers.dense import DenseBlock
 from nets.layers.sequence import MultiHeadSelfAttention
+from nets.models.mixture import GatedMixtureABC
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -177,7 +178,8 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, gru_dim=None,
-                 name="SequentialDeepHashEmbeddingWithGRU", **kwargs):
+                 last_n=None, name="SequentialDeepHashEmbeddingWithGRU",
+                 **kwargs):
 
         super().__init__(
             hash_bins=hash_bins,
@@ -190,7 +192,9 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
 
         self._gru_dim = gru_dim
         if self._gru_dim is None:
-            self._gru_dim = embedding_dim
+            self._gru_dim = self._embedding_dim
+
+        self._last_n = last_n
         self._last_n_flag = self._last_n is not None
 
         self._gru = tf.keras.layers.GRUCell(units=self._gru_dim)
@@ -307,3 +311,46 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
         config.update(self._dense_config)
         return config
 
+
+@tf.keras.utils.register_keras_serializable("nets")
+class SequentialDeepHashEmbeddingMixture(GatedMixtureABC):
+
+    def __init__(self, hash_embedding_dim=128, embedding_dim=32,
+                 name="SequentialDeepHashEmbeddingMixture", **kwargs):
+
+        self._hash_embedding_dim = hash_embedding_dim
+        self._embedding_dim = embedding_dim
+
+        # Long range model is multi-head self attention + FF
+        long_range_model = SequentialDeepHashEmbeddingWithAttention(
+                hash_embedding_dim=self._hash_embeddings_dim,
+                embedding_dim=self._embedding_dim,
+                hidden_dims=[64],
+                attention_key_dim=128,
+                attention_heads=4,
+                attention_concat=True
+        )
+
+        # Short range model is GRU + FF
+        short_range_model = SequentialDeepHashEmbeddingWithGRU(
+                hash_embedding_dim=self._hash_embeddings_dim,
+                embedding_dim=self._embedding_dim,
+                hidden_dims=[64]
+        )
+
+        self._experts = [short_range_model, long_range_model]
+
+        super().__init__(
+                n_experts=2,
+                expert_dim=self._embedding_dim,
+                name=name,
+                **kwargs
+        )
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "hash_embedding_dim": self._hash_embedding_dim,
+            "embedding_dim": self._embedding_dim
+        })
+        return config
