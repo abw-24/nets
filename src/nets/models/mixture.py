@@ -45,7 +45,7 @@ class GatedMixtureABC(BaseTFKerasModel):
 
         # Iterate over experts and gate layers, take the elementwise product
         # and add to the outputs sum vector.
-        # Should be AutoGraph convertible -- no side effects
+        # AutoGraph convertible -- no side effects
         for expert, gate_layer in zip(self._experts, self._gate_layers):
             expert_output = expert.__call__(inputs)
             gates = gate_layer.__call__(inputs)
