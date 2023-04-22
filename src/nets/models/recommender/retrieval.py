@@ -4,7 +4,7 @@ import tensorflow_recommenders as tfrs
 
 from .base import TwoTowerABC, TwoTowerTrait
 from nets.models.recommender.embedding import DeepHashEmbedding, \
-    SequentialDeepHashEmbeddingMixture
+    SequentialDeepHashEmbeddingMixtureOfExperts
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -62,7 +62,9 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
 
      The sequential layers are not intended to be generative / trained
      causally. Windows of historical items of a fixed size should be used
-      as the query model inputs, and a single item as the label.
+      as the query model inputs, and a single item as the label (candidate).
+
+    Inspired by: https://arxiv.org/pdf/1902.08588.pdf
     """
 
     def __init__(self, query_id, candidate_id, embedding_dim=32,
@@ -73,7 +75,7 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
         self._hash_embeddings_dim = 128
 
         # Query model is a sequential mixture -- see model for details
-        query_model = SequentialDeepHashEmbeddingMixture(
+        query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
                 hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim
         )
@@ -81,7 +83,6 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
         # Candidate model is a simple (non-sequential) hash embedder + FF
         candidate_model = DeepHashEmbedding(
                 hash_embedding_dim=self._hash_embeddings_dim,
-                hidden_dims=[64],
                 embedding_dim=self._embedding_dim
         )
 

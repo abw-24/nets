@@ -110,18 +110,20 @@ class HashEmbedding(BaseTFKerasModel):
 @tf.keras.utils.register_keras_serializable("nets")
 class DeepHashEmbedding(BaseTFKerasModel):
 
-    _dense_config = {
+    _feedforward_config = {
         "hidden_dims": [32],
         "activation": "relu",
         "spectral_norm": True
     }
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64, embedding_dim=16,
-                context_model=None, name="DeepHashEmbedding", **kwargs):
+                context_model=None, name="DeepHashEmbedding",
+                 feedforward_config=None, **kwargs):
 
         super().__init__(name=name)
 
-        self._dense_config.update(kwargs)
+        if feedforward_config is not None:
+            self._feedforward_config.update(feedforward_config)
 
         self._hash_bins = hash_bins
         self._hash_embedding_dim = hash_embedding_dim
@@ -135,7 +137,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
         )
 
         self._dense_block = DenseBlock.from_config(
-                self._dense_config
+                self._feedforward_config
         )
         self._final_layer = tf.keras.layers.Dense(
                 units=self._embedding_dim, activation="linear"
@@ -162,30 +164,35 @@ class DeepHashEmbedding(BaseTFKerasModel):
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model
         })
-        config.update(self._dense_config)
+        config.update(self._feedforward_config)
         return config
 
     @property
     def context_model(self):
         return self._context_model
 
+    @property
+    def feedforward_config(self):
+        return self._feedforward_config
+
 
 @tf.keras.utils.register_keras_serializable("nets")
 class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
     """
-    Sequential hash embeddings with multi-head self attention.
+    Sequential hash embeddings with GRU
     """
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, gru_dim=None,
                  last_n=None, name="SequentialDeepHashEmbeddingWithGRU",
-                 **kwargs):
+                 feedforward_config=None, **kwargs):
 
         super().__init__(
             hash_bins=hash_bins,
             hash_embedding_dim=hash_embedding_dim,
             embedding_dim=embedding_dim,
             context_model=context_model,
+            feedforward_config=feedforward_config,
             name=name,
             **kwargs
         )
@@ -197,7 +204,7 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
         self._last_n = last_n
         self._last_n_flag = self._last_n is not None
 
-        self._gru = tf.keras.layers.GRUCell(units=self._gru_dim)
+        self._gru = tf.keras.layers.GRU(units=self._gru_dim)
 
     def call(self, inputs, training=True):
 
@@ -228,10 +235,10 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
+            "feedforward_config": self._feedforward_config,
             "gru_dim": self._gru_dim,
             "last_n": self._last_n
         })
-        config.update(self._dense_config)
         return config
 
 
@@ -243,8 +250,8 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, attention_key_dim=128,
-                 attention_heads=4, attention_mask=False,
-                 attention_pooling=False, last_n=None,
+                 attention_heads=4, attention_mask=False, attention_concat=False,
+                 attention_pooling=False, last_n=None, feedforward_config=None,
                  name="SequentialDeepHashEmbeddingWithAttention", **kwargs):
 
         super().__init__(
@@ -252,6 +259,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             hash_embedding_dim=hash_embedding_dim,
             embedding_dim=embedding_dim,
             context_model=context_model,
+            feedforward_config=feedforward_config,
             name=name,
             **kwargs
         )
@@ -259,10 +267,16 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
         self._attention_key_dim = attention_key_dim
         self._attention_heads = attention_heads
         self._attention_mask = attention_mask
+        self._attention_concat = attention_concat
         self._attention_pooling = attention_pooling
         self._last_n = last_n
 
-        self._attention_concat = not self._attention_pooling
+        # If either concat or pooling is `True`, make sure both are not `True`
+        if self._attention_concat or self._attention_pooling:
+            assert self._attention_concat != self._attention_pooling, \
+                "Cannot have both 1D average pooling and concatenation. " \
+                "Please set just one to `True`"
+
         self._last_n_flag = self._last_n is not None
 
         self._mha = MultiHeadSelfAttention(
@@ -306,26 +320,40 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             "attention_heads": self._attention_heads,
             "attention_mask": self._attention_mask,
             "attention_pooling": self._attention_pooling,
+            "attention_concat": self._attention_concat,
             "last_n": self._last_n
         })
-        config.update(self._dense_config)
+        config.update(self._feedforward_config)
         return config
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class SequentialDeepHashEmbeddingMixture(GatedMixtureABC):
+class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixtureABC):
+    """
+    Sequential mixture of experts.
+
+    - Long range model is hash embeddings + multi-head self attention + FF
+    - Short range model is hash embeddings + GRU + FF
+    """
 
     def __init__(self, hash_embedding_dim=128, embedding_dim=32,
                  name="SequentialDeepHashEmbeddingMixture", **kwargs):
+
+        super().__init__(
+                n_experts=2,
+                expert_dim=embedding_dim,
+                name=name,
+                **kwargs
+        )
 
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
 
         # Long range model is multi-head self attention + FF
         long_range_model = SequentialDeepHashEmbeddingWithAttention(
-                hash_embedding_dim=self._hash_embeddings_dim,
+                hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim,
-                hidden_dims=[64],
+                feedforward_config={"hidden_dims": [64]},
                 attention_key_dim=128,
                 attention_heads=4,
                 attention_concat=True
@@ -333,19 +361,34 @@ class SequentialDeepHashEmbeddingMixture(GatedMixtureABC):
 
         # Short range model is GRU + FF
         short_range_model = SequentialDeepHashEmbeddingWithGRU(
-                hash_embedding_dim=self._hash_embeddings_dim,
+                hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim,
-                hidden_dims=[64]
+                feedforward_config={"hidden_dims": [64]}
         )
 
+        # Set experts
         self._experts = [short_range_model, long_range_model]
 
-        super().__init__(
-                n_experts=2,
-                expert_dim=self._embedding_dim,
-                name=name,
-                **kwargs
-        )
+    def call(self, inputs, training=True):
+        """
+        Override base GatedMixture to use expert output as the gate input
+        """
+        outputs = None
+
+        # Iterate over experts and gate layers, take the elementwise product
+        # and add to the outputs sum vector. In this version, we use the
+        # expert output vector as the input to the gating layer.
+        # AutoGraph convertible -- no side effects
+        for expert, gate_layer in zip(self._experts, self._gate_layers):
+            expert_output = expert.__call__(inputs)
+            gates = gate_layer.__call__(expert_output)
+            gated_expert = tf.math.multiply(gates, expert_output)
+            if outputs is None:
+                outputs = gated_expert
+            else:
+                outputs = tf.math.add(outputs, gated_expert)
+
+        return outputs
 
     def get_config(self):
         config = super().get_config()
