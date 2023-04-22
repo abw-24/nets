@@ -77,7 +77,8 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
         # Query model is a sequential mixture -- see model for details
         query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
                 hash_embedding_dim=self._hash_embedding_dim,
-                embedding_dim=self._embedding_dim
+                embedding_dim=self._embedding_dim,
+                masking=True
         )
 
         # Candidate model is a simple (non-sequential) hash embedder + FF
