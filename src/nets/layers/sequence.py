@@ -35,7 +35,7 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
             self._global_pool = tf.keras.layers.GlobalAveragePooling1D()
 
         if self._concat:
-            self._concat_layer = tf.keras.layers.Concatenate()
+            self._flatten_layer = tf.keras.layers.Flatten()
 
     def call(self, inputs):
         output = self._attention_layer.__call__(
@@ -51,7 +51,7 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         if self._pooling:
             embedding = self._global_pool.__call__(embedding)
         elif self._concat:
-            embedding = self._concat_layer.__call__(embedding)
+            embedding = self._flatten_layer.__call__(embedding)
 
         return embedding
 
