@@ -11,22 +11,23 @@ from nets.models.mixture import GatedMixtureABC
 class StringEmbedding(BaseTFKerasModel):
 
     def __init__(self, vocab, embedding_dim=32, context_model=None,
-                 name="StringEmbedding"):
+                 masking=False, name="StringEmbedding"):
 
         super().__init__(name=name)
 
         self._vocab = vocab
         self._embedding_dim = embedding_dim
         self._context_model = context_model
+        self._masking = masking
 
         # Create a tf constant boolean for checking during call
         self._context_flag = self._context_model is not None
 
         self._lookup = tf.keras.layers.StringLookup(
-                vocabulary=self._vocab, mask_token=None
+                vocabulary=self._vocab
         )
         self._embed = tf.keras.layers.Embedding(
-                len(self._vocab) + 1, embedding_dim
+                len(self._vocab) + 1, embedding_dim, mask_zero=self._masking
         )
 
     def call(self, inputs, training=True):
@@ -35,20 +36,28 @@ class StringEmbedding(BaseTFKerasModel):
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            # Concat along the last axis.
-            # Note: this assumes a "channels last" data format!
+            # Concat along the last (embedding) axis.
+            # Note: this assumes a "channels last" data format
             embeddings = tf.concat(
                     [embeddings, context_embeddings], -1
             )
 
         return embeddings
 
+    def compute_mask(self, inputs, mask=None):
+        """
+        Unpack inputs and use the embedding layer's compute_mask to compute
+        """
+        ids, context = inputs
+        return self._embed.compute_mask(ids)
+
     def get_config(self):
         config = super().get_config()
         config.update({
             "vocab": self._vocab,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model
+            "context_model": self._context_model,
+            "masking": self._masking
         })
         return config
 
@@ -61,13 +70,14 @@ class StringEmbedding(BaseTFKerasModel):
 class HashEmbedding(BaseTFKerasModel):
 
     def __init__(self, hash_bins=262144, embedding_dim=32,
-                 context_model=None, name="HashEmbedding"):
+                 context_model=None, masking=False, name="HashEmbedding"):
 
         super().__init__(name=name)
 
         self._hash_bins = hash_bins
         self._embedding_dim = embedding_dim
         self._context_model = context_model
+        self._masking = masking
 
         # Create a tf constant boolean for checking during call
         self._context_flag = self._context_model is not None
@@ -76,7 +86,7 @@ class HashEmbedding(BaseTFKerasModel):
                 num_bins=self._hash_bins
         )
         self._embed = tf.keras.layers.Embedding(
-                self._hash_bins, embedding_dim
+                self._hash_bins, embedding_dim, mask_zero=self._masking
         )
 
     def call(self, inputs, training=True):
@@ -85,20 +95,28 @@ class HashEmbedding(BaseTFKerasModel):
 
         if self._context_flag:
             context_embeddings = self._context_model(context)
-            # Concat along the last axis.
-            # Note: this assumes a "channels last" data format!
+            # Concat along the last (embedding) axis.
+            # Note: this assumes a "channels last" data format
             embeddings = tf.concat(
                     [embeddings, context_embeddings], -1
             )
 
         return embeddings
 
+    def compute_mask(self, inputs, mask=None):
+        """
+        Unpack inputs and use the embedding layer's compute_mask to compute
+        """
+        ids, context = inputs
+        return self._embed.compute_mask(ids)
+
     def get_config(self):
         config = super().get_config()
         config.update({
             "hash_bins": self._hash_bins,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model
+            "context_model": self._context_model,
+            "masking": self._masking
         })
         return config
 
@@ -118,7 +136,7 @@ class DeepHashEmbedding(BaseTFKerasModel):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64, embedding_dim=16,
                 context_model=None, name="DeepHashEmbedding",
-                 feedforward_config=None, **kwargs):
+                 feedforward_config=None, masking=False, **kwargs):
 
         super().__init__(name=name)
 
@@ -129,11 +147,13 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
         self._context_model = context_model
+        self._masking = masking
 
         self._embedding = HashEmbedding(
                     hash_bins=self._hash_bins,
                     embedding_dim=self._hash_embedding_dim,
-                    context_model=self._context_model
+                    context_model=self._context_model,
+                    masking=self._masking
         )
 
         self._dense_block = DenseBlock.from_config(
@@ -162,7 +182,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
             "hash_bins": self._hash_bins,
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
-            "context_model": self._context_model
+            "context_model": self._context_model,
+            "masking": self._masking
         })
         config.update(self._feedforward_config)
         return config
@@ -179,12 +200,12 @@ class DeepHashEmbedding(BaseTFKerasModel):
 @tf.keras.utils.register_keras_serializable("nets")
 class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
     """
-    Sequential hash embeddings with GRU
+    Sequential hash embeddings with GRU.
     """
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, gru_dim=None,
-                 last_n=None, name="SequentialDeepHashEmbeddingWithGRU",
+                 name="SequentialDeepHashEmbeddingWithGRU", masking=False,
                  feedforward_config=None, **kwargs):
 
         super().__init__(
@@ -193,6 +214,7 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
             embedding_dim=embedding_dim,
             context_model=context_model,
             feedforward_config=feedforward_config,
+            masking=masking,
             name=name,
             **kwargs
         )
@@ -201,24 +223,16 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
         if self._gru_dim is None:
             self._gru_dim = self._embedding_dim
 
-        self._last_n = last_n
-        self._last_n_flag = self._last_n is not None
-
         self._gru = tf.keras.layers.GRU(units=self._gru_dim)
 
     def call(self, inputs, training=True):
 
         # Embedding layer handles parsing the id and context
         raw_embeddings = self._embedding.__call__(inputs)
-
-        # If we only want to consider the last n inputs, slice.
-        # Note: this assumes a "channel last" input tensor of shape
-        # (batch_size, steps, embedding_dim)
-        if self._last_n_flag:
-            raw_embeddings = raw_embeddings[:, -self._last_n:, ...]
+        mask = self._embedding.compute_mask(inputs)
 
         # GRU cell
-        gru_final_state = self._gru.__call__(raw_embeddings)
+        gru_final_state = self._gru.__call__(raw_embeddings, mask=mask)
 
         embeddings = self._final_layer.__call__(
                 self._dense_block.__call__(
@@ -237,7 +251,7 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
             "context_model": self._context_model,
             "feedforward_config": self._feedforward_config,
             "gru_dim": self._gru_dim,
-            "last_n": self._last_n
+            "masking": self._masking
         })
         return config
 
@@ -250,8 +264,8 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, attention_key_dim=128,
-                 attention_heads=4, attention_mask=False, attention_concat=False,
-                 attention_pooling=False, last_n=None, feedforward_config=None,
+                 attention_heads=4, attention_causal_mask=False, attention_concat=False,
+                 attention_pooling=False, masking=None, feedforward_config=None,
                  name="SequentialDeepHashEmbeddingWithAttention", **kwargs):
 
         super().__init__(
@@ -260,16 +274,16 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             embedding_dim=embedding_dim,
             context_model=context_model,
             feedforward_config=feedforward_config,
+            masking=masking,
             name=name,
             **kwargs
         )
 
         self._attention_key_dim = attention_key_dim
         self._attention_heads = attention_heads
-        self._attention_mask = attention_mask
+        self._attention_causal_mask = attention_causal_mask
         self._attention_concat = attention_concat
         self._attention_pooling = attention_pooling
-        self._last_n = last_n
 
         # If either concat or pooling is `True`, make sure both are not `True`
         if self._attention_concat or self._attention_pooling:
@@ -277,12 +291,10 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
                 "Cannot have both 1D average pooling and concatenation. " \
                 "Please set just one to `True`"
 
-        self._last_n_flag = self._last_n is not None
-
         self._mha = MultiHeadSelfAttention(
                 num_heads=self._attention_heads,
                 key_dim=self._attention_key_dim,
-                masking=self._attention_mask,
+                masking=self._attention_causal_mask,
                 pooling=self._attention_pooling,
                 concat=self._attention_concat
         )
@@ -291,15 +303,10 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
 
         # Embedding layer handles parsing the id and context
         raw_embeddings = self._embedding.__call__(inputs)
-
-        # If we only want to consider the last n inputs, slice.
-        # Note: this assumes a "channel last" input tensor of shape
-        # (batch_size, steps, embedding_dim)
-        if self._last_n_flag:
-            raw_embeddings = raw_embeddings[:, -self._last_n:, ...]
+        mask = self._embedding.compute_mask(inputs)
 
         # Multi-head attention cell
-        raw_embeddings = self._mha.__call__(raw_embeddings)
+        raw_embeddings = self._mha.__call__(raw_embeddings, mask=mask)
 
         embeddings = self._final_layer.__call__(
                 self._dense_block.__call__(
@@ -318,10 +325,10 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             "context_model": self._context_model,
             "attention_key_dim": self._attention_key_dim,
             "attention_heads": self._attention_heads,
-            "attention_mask": self._attention_mask,
+            "attention_causal_mask": self._attention_causal_mask,
             "attention_pooling": self._attention_pooling,
             "attention_concat": self._attention_concat,
-            "last_n": self._last_n
+            "masking": self._masking
         })
         config.update(self._feedforward_config)
         return config
@@ -336,7 +343,7 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixtureABC):
     - Short range model is hash embeddings + GRU + FF
     """
 
-    def __init__(self, hash_embedding_dim=128, embedding_dim=32,
+    def __init__(self, hash_embedding_dim=128, embedding_dim=32, masking=False,
                  name="SequentialDeepHashEmbeddingMixture", **kwargs):
 
         super().__init__(
@@ -348,6 +355,7 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixtureABC):
 
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
+        self._masking = masking
 
         # Long range model is multi-head self attention + FF
         long_range_model = SequentialDeepHashEmbeddingWithAttention(
@@ -356,14 +364,17 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixtureABC):
                 feedforward_config={"hidden_dims": [64]},
                 attention_key_dim=128,
                 attention_heads=4,
-                attention_concat=True
+                attention_concat=True,
+                attention_causal_mask=False,
+                masking=self._masking
         )
 
         # Short range model is GRU + FF
         short_range_model = SequentialDeepHashEmbeddingWithGRU(
                 hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim,
-                feedforward_config={"hidden_dims": [64]}
+                feedforward_config={"hidden_dims": [64]},
+                masking=self._masking
         )
 
         # Set experts
@@ -394,6 +405,7 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixtureABC):
         config = super().get_config()
         config.update({
             "hash_embedding_dim": self._hash_embedding_dim,
-            "embedding_dim": self._embedding_dim
+            "embedding_dim": self._embedding_dim,
+            "masking": self._masking
         })
         return config

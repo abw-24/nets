@@ -11,6 +11,9 @@ class DenseBlock(tf.keras.layers.Layer):
 
         super(DenseBlock, self).__init__(**kwargs)
 
+        # Enable masking to propogate any input masks to a mask-consuming layer
+        self.supports_masking = True
+
         if isinstance(hidden_dims, int):
             self._hidden_dims = [hidden_dims]
         else:

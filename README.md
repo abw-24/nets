@@ -8,7 +8,7 @@ Tensorflow 2.x network architectures
     * Note: Integration tests do not mock training or saving, so the full suite may take a few minutes to run
 
 ### Example usage: Sequential item-to-item
-```
+```python
 import nets.models.recommender as rec
 import nets.models.mlp as mlp
 
