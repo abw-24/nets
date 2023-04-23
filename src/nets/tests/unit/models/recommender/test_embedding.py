@@ -11,7 +11,7 @@ from nets.models.recommender.embedding import \
 from nets.tests.utils import try_except_assertion_decorator
 
 
-#TODO: Add tests to cover context features
+#TODO: Add tests to cover context features, add tests for padding masks
 
 class TestStringEmbedding(unittest.TestCase):
 
@@ -177,13 +177,13 @@ class TestSequentialDeepHashEmbeddingWithGRU(unittest.TestCase):
         self._hash_bins = 10
         self._hash_embedding_dim = 4
         self._embedding_dim = 2
-        self._last_n = None
+        self._masking = False
 
         self._default_config = {
             "hash_bins": self._hash_bins,
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
-            "last_n": None
+            "masking": self._masking
         }
 
     @try_except_assertion_decorator
@@ -193,8 +193,7 @@ class TestSequentialDeepHashEmbeddingWithGRU(unittest.TestCase):
     @try_except_assertion_decorator
     def test_build(self):
         _ = SequentialDeepHashEmbeddingWithGRU(
-                hash_bins=self._hash_bins, embedding_dim=self._embedding_dim,
-                last_n=self._last_n
+                hash_bins=self._hash_bins, embedding_dim=self._embedding_dim
         )
 
     @try_except_assertion_decorator
@@ -217,14 +216,6 @@ class TestSequentialDeepHashEmbeddingWithGRU(unittest.TestCase):
         assert np.array(embedding).shape[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
-    def test_call_with_last_n(self):
-        # Update default config with last_n value
-        self._default_config.update({"last_n": 1})
-        embedder = SequentialDeepHashEmbeddingWithGRU(**self._default_config)
-        embedding = embedder(self._default_call_inputs)
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
-            "Embedded dimension does not match configured value."
-
 
 class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
 
@@ -240,21 +231,21 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
         self._hash_bins = 10
         self._hash_embedding_dim = 4
         self._embedding_dim = 2
-        self._last_n = None
         self._attention_heads = 4
         self._attention_key_dim = 128
         self._attention_concat = False
         self._attention_mask = False
+        self._masking = False
 
         self._default_config = {
             "hash_bins": self._hash_bins,
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
-            "last_n": None,
             "attention_heads": self._attention_heads,
             "attention_key_dim": self._attention_key_dim,
             "attention_concat": self._attention_concat,
-            "attention_mask": self._attention_mask
+            "attention_causal_mask": self._attention_mask,
+            "masking": self._masking
         }
 
     @try_except_assertion_decorator
@@ -266,7 +257,6 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
         _ = SequentialDeepHashEmbeddingWithAttention(
                 hash_bins=self._hash_bins,
                 embedding_dim=self._embedding_dim,
-                last_n=self._last_n,
                 attention_key_dim=self._attention_key_dim,
                 attention_mask=self._attention_mask,
                 attention_heads=self._attention_heads,
@@ -304,23 +294,6 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
         assert np.array(embedding).shape[1] == self._default_call_inputs[0].shape[1], \
             "Timestep dimension does not match expected value of {}."\
                 .format(self._default_call_inputs[0].shape[1])
-
-    def test_call_with_last_n(self):
-        # Update default config with last_n value
-        last_n = 2
-        self._default_config.update({"last_n": last_n})
-        embedder = SequentialDeepHashEmbeddingWithAttention(
-                **self._default_config
-        )
-        embedding = embedder(self._default_call_inputs)
-        # If last_n is used with attention_concat = False, we should get
-        # just last_n many timesteps in the output
-        assert len(np.array(embedding).shape) == 3, "Unexpected shape."
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
-            "Embedded dimension does not match configured value."
-        assert np.array(embedding).shape[1] == last_n, \
-            "Timestep dimension does not match expected value of {}."\
-                .format(last_n)
 
     def test_call_with_concat(self):
         self._default_config.update({
