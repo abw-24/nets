@@ -23,7 +23,7 @@ import tensorflow as tf
 query_model = emb.SequentialDeepHashEmbeddingWithAttention(
         hash_embedding_dim=128,
         embedding_dim=32,
-        hidden_dims=[64],
+        feedforward_config={"hidden_dims": [64]}, 
         attention_key_dim=256,
         attention_heads=4,
         attention_concat=True,
@@ -32,8 +32,7 @@ query_model = emb.SequentialDeepHashEmbeddingWithAttention(
 candidate_model = emb.DeepHashEmbedding(
     hash_embedding_dim=128,
     embedding_dim=32,
-    hidden_dims=[64],
-    activation="relu"
+    feedforward_config={"hidden_dims": [64], "activation": "relu"} 
 )
 model = ret.TwoTowerRetrieval(
     query_model=query_model,
