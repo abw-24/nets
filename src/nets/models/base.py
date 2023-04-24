@@ -30,7 +30,7 @@ class BaseTFKerasModel(tf.keras.Model, metaclass=ABCMeta):
         raise NotImplementedError("Abstract.")
 
     @abstractmethod
-    def get_config(self, inputs, training=False):
+    def get_config(self):
         raise NotImplementedError("Abstract.")
 
 
