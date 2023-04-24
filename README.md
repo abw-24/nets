@@ -48,7 +48,7 @@ model.compile(
 # You can also use models with pre-defined architectures like this
 # sequential mixture-of-experts retrieval model, which has a query model
 # that mixes multi-head self attention for long range dependencies and
-# GRU for short range dependencies on sequential item interaction history
+# GRU for short range dependencies on item interaction history
 
 model = ret.SequentialMixtureOfExpertsRetrieval(
     query_id="context_movie_titles",
