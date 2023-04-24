@@ -13,6 +13,9 @@ from nets.layers.sampling import GaussianSampling
 
 @tf.keras.utils.register_keras_serializable("nets")
 class GaussianDenseVariationalEncoder(BaseTFKerasModel):
+    """
+    Variational encoder.
+    """
 
     def __init__(self, encoding_dims, latent_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
@@ -42,10 +45,7 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
 
     def build(self, input_shape):
         """
-        Build portion of model graph that depends on the input shape.
-        Also make a call to the parent's build method.
-
-        :param input_shape: Dimension of input tensor
+        Build portion of model graph that depends on the input shape
         """
 
         self._input_layer = tf.keras.layers.InputLayer(
@@ -59,7 +59,8 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
         latent_mean = self._latent_mean.__call__(dense_block)
         latent_log_var = self._latent_log_var.__call__(dense_block)
         encoding = self._sampling.__call__((latent_mean, latent_log_var))
-        return latent_mean, latent_log_var, encoding
+
+        return (latent_mean, latent_log_var, encoding)
 
     def get_config(self):
         config = super(GaussianDenseVariationalEncoder, self).get_config()
@@ -110,10 +111,7 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
 
     def build(self, input_shape):
         """
-        Build portion of model graph that depends on the input shape.
-        Also make a call to the parent's build method.
-
-        :param input_shape: Dimension of input tensor
+        Build portion of model graph that depends on the input shape
         """
 
         self._input_layer = tf.keras.layers.InputLayer(
@@ -149,7 +147,7 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
 class GaussianDenseVAE(BaseTFKerasModel):
     """
     Variational autoencoder with dense encoding/decoding layers. Defaults
-    to Max Mean Discrepancy as the difference-in-distribution loss per the
+    to Max Mean Discrepancy as the dissimilarity measure per the
     InfoVAE line of research on learning meaningful latent codes.
 
     Paper: https://arxiv.org/pdf/1706.02262.pdf
@@ -205,16 +203,14 @@ class GaussianDenseVAE(BaseTFKerasModel):
         # Input layer and decoder can only be defined now if we
         # received an input_shape. Otherwise deferred to a .build()
         # call by the user.
+        self._input_dim = None
         self._decoder = None
         if self._input_shape is not None:
             self.build(self._input_shape)
 
     def build(self, input_shape):
         """
-        Build portion of model graph that depends on the input shape.
-        Also make a call to the parent's build method.
-
-        :param input_shape: Dimension of input tensor
+        Build portion of model graph that depends on the input shape
         """
         self._input_shape = input_shape
         self._input_dim = input_shape[-1]
@@ -237,7 +233,7 @@ class GaussianDenseVAE(BaseTFKerasModel):
     @tf.function
     def train_step(self, data):
         """
-        Overrides parent `train_step` to implement custom loss handling.
+        Overrides `train_step` to implement custom loss handling.
         """
 
         x, y = data
