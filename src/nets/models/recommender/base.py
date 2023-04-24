@@ -27,14 +27,6 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
     def candidate_model(self):
         return self._candidate_model
 
-    @abstractmethod
-    def call(self, inputs, training=False):
-        raise NotImplementedError("Abstract")
-
-    @abstractmethod
-    def compute_loss(self, features, training=False):
-        raise NotImplementedError("Abstract")
-
 
 class TwoTowerTrait(object):
     """

@@ -15,7 +15,7 @@ class GatedMixtureABC(BaseTFKerasModel):
     returning a tensor of shape (batch_size, embedding_dim).
 
     Inheritors should define the expert models in the init method and
-     assign a list of the experts to a `self._experts` instance variable.
+     assign a list of the experts to a `self._experts` attribute.
     """
 
     def __init__(self, n_experts, expert_dim, spectral_norm=False,

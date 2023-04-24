@@ -31,24 +31,17 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         self._add_layer = tf.keras.layers.Add()
         self._layer_norm = tf.keras.layers.LayerNormalization()
 
-        # If either pooling or concat is set to `True`, masks are destroyed.
-        # Otherwise, they can be propagated as is, which we can achieve
-        # by setting the `supports_masking` attribute to `True`
-
-        self.supports_masking = True
         if self._pooling:
-            self.supports_masking = False
             self._global_pool = tf.keras.layers.GlobalAveragePooling1D()
 
         if self._concat:
-            self.supports_masking = False
             self._flatten_layer = tf.keras.layers.Flatten()
 
     def call(self, inputs, mask=None, training=True):
         """
-        Apply the attention layer and the residual connection, then
-        either pooling or flattening if configured, otherwise return
-        all timesteps (same shape as input).
+        Apply the attention layer and the residual connection, then either
+        pooling or flattening if configured, otherwise return all timesteps
+         (same shape as input).
         """
         # Pass any provided padding mask to attention layer
         output = self._attention_layer.__call__(
@@ -71,6 +64,20 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
             embedding = self._flatten_layer.__call__(embedding)
 
         return embedding
+
+    def compute_mask(self, inputs, mask=None):
+        """
+        If either pooling or concat is set to `True`, masks are destroyed.
+        Otherwise, they're returned unchaged.
+        """
+        if not self._masking:
+            return None
+        if self._pooling:
+            return None
+        if self._concat:
+            return None
+
+        return mask
 
     def get_config(self):
         config = super().get_config()

@@ -10,8 +10,6 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
 
     """
     Basic pointwise two tower ranking.
-
-    Assumes `query_model` and `candidate_model` outputs are of the same shape.
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
                  query_id, candidate_id, context_model=None, context_features=None,
@@ -48,6 +46,7 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
 
         query_embeddings = self._query_model_with_context(inputs)
         candidate_embeddings = self._candidate_model_with_context(inputs)
+        # Concatenate the query and candidate embeddings
         concat_embeddings = tf.concat(
                     [query_embeddings, candidate_embeddings], -1
         )
@@ -61,8 +60,7 @@ class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
                     [concat_embeddings, context_embeddings], -1
         )
 
-        # Concat along the last axis.
-        # Note: this assumes a "channels last" data format!
+        # Pass complete embedding to target model and return the triplet
         rank_prediction = self._target_model.__call__(concat_embeddings)
 
         return (query_embeddings, candidate_embeddings, rank_prediction)
@@ -94,9 +92,9 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
     """
     Listwise two tower ranking.
 
-    Assumes `query_model` outputs are of shape (batch_size, ..., model_dim),
-    while `candidate_model` outputs are of shape (batch_size, n_candidates,
-    ..., model_dim). `query_model` embeddings are duplicated and concatenated with
+    Assumes `query_model` outputs are of shape (batch_size, ..., model_dim)
+    and `candidate_model` outputs are of shape (batch_size, n_candidates,
+    ..., model_dim). `query_model` embeddings are copied and concatenated with
     each `candidate_model` embedding to complete the ranking model inputs.
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
@@ -121,7 +119,7 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
                 name=name
         )
 
-        # Overwrite the parent constructor's handling
+        # Overwrite the parent constructor handling
         self._loss = loss
         if self._loss is None:
             self._loss = tfr.keras.losses.ListMLELoss()
@@ -136,6 +134,7 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
         query_embeddings = self._query_model_with_context(inputs)
         candidate_embeddings = self._candidate_model_with_context(inputs)
 
+        # Expand on candidates dimension (assumed to be axis=1)
         n_candidates = inputs[self._candidate_id].shape[1]
         query_embedding_vec = tf.repeat(
                 tf.expand_dims(query_embeddings, 1), [n_candidates], axis=1
@@ -154,6 +153,7 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
                     [concat_embeddings, context_embeddings], -1
             )
 
+        # Pass complete embedding to target model and return the triplet
         rank_prediction = self._target_model.__call__(concat_embeddings)
 
         return (query_embedding_vec, candidate_embeddings, rank_prediction)
