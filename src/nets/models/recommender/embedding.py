@@ -11,7 +11,7 @@ from nets.models.mixture import GatedMixtureABC
 class StringEmbedding(BaseTFKerasModel):
 
     def __init__(self, vocab, embedding_dim=32, context_model=None,
-                 masking=False, name="StringEmbedding"):
+                 masking=False, mask_token="[PAD]", name="StringEmbedding"):
 
         super().__init__(name=name)
 
@@ -19,12 +19,13 @@ class StringEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
         self._masking = masking
+        self._mask_token = mask_token
 
         # Create a tf constant boolean for checking during call
         self._context_flag = self._context_model is not None
 
         self._lookup = tf.keras.layers.StringLookup(
-                vocabulary=self._vocab
+                vocabulary=self._vocab, mask_token=self._mask_token
         )
         self._embed = tf.keras.layers.Embedding(
                 len(self._vocab) + 1, embedding_dim, mask_zero=self._masking
