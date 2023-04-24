@@ -315,15 +315,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
         raw_embeddings = self._embedding.__call__(inputs)
         mask = self._embedding.compute_mask(inputs)
 
-        # Multi-head attention cell. Mask must be reformatted to fit
-        # query -> key masking of shape (batch, target_shape, seq_shape)
-        if mask is not None:
-            mask = tf.repeat(
-                    tf.expand_dims(mask, axis=-1),
-                    [raw_embeddings.shape[1]],
-                    axis=-1
-            )
-
+        # Propagate masks. MHA layer will reofrmat as needed
         raw_embeddings = self._mha.__call__(raw_embeddings, mask=mask)
 
         embeddings = self._final_layer.__call__(
