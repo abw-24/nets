@@ -16,6 +16,10 @@ class TwoTowerMultiTask(TwoTowerRanking):
     more the ranking loss is favored.
 
     Assumes `query_model` and `candidate_model` outputs are of the same shape.
+
+    Inherits from the basic TwoTowerRanking model, as they compute the same
+    graph, multi-task just makes use of all outputs (both embeddings and rank
+    prediction).
     """
     def __init__(self, target_model, query_model, candidate_model, rank_target,
                  query_id, candidate_id, balance=0.5, context_model=None,
@@ -80,6 +84,9 @@ class ListwiseTwoTowerMultiTask(ListwiseTwoTowerRanking):
     while `candidate_model` outputs are of shape (batch_size, n_candidates,
     ..., model_dim). `query_model` embeddings are duplicated and concatenated with
     each `candidate_model` embedding to complete the ranking model inputs.
+
+    Like the basic TwoTowerMultitask, inherits from the corresponding ranking
+    model, as it shares its call method.
     """
 
     def __init__(self, target_model, query_model, candidate_model, rank_target,
