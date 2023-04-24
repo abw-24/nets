@@ -42,8 +42,18 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         Apply the attention layer and the residual connection, then either
         pooling or flattening if configured, otherwise return all timesteps
          (same shape as input).
+
+         Mask handling is needed to expand (batch, seq_len) masks to
+         (batch, seq_len, seq_len) masks for self-attention
         """
-        # Pass any provided padding mask to attention layer
+        # Mask reshape
+        if mask is not None:
+            mask = tf.repeat(
+                    tf.expand_dims(mask, axis=1),
+                    [inputs.shape[1]],
+                    axis=1
+            )
+        # Pass inputs and mask to attention layer
         output = self._attention_layer.__call__(
                 query=inputs,
                 value=inputs,
@@ -51,6 +61,7 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
                 use_causal_mask=self._masking,
                 attention_mask=mask
         )
+        # Add and layer norm (mask preserving)
         embedding = self._layer_norm.__call__(
                 self._add_layer.__call__(
                         [inputs, output]
