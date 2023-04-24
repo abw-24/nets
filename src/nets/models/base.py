@@ -29,10 +29,6 @@ class BaseTFKerasModel(tf.keras.Model, metaclass=ABCMeta):
     def call(self, inputs, training=False):
         raise NotImplementedError("Abstract.")
 
-    @abstractmethod
-    def get_config(self):
-        raise NotImplementedError("Abstract.")
-
 
 @tf.keras.utils.register_keras_serializable("nets")
 class BaseTFRecommenderModel(tfrs.models.Model, metaclass=ABCMeta):
