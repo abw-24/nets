@@ -72,7 +72,7 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
                  name="SelfAttentionMixtureOfExpertsRetrieval", **kwargs):
 
         self._embedding_dim = embedding_dim
-        self._hash_embeddings_dim = 128
+        self._hash_embedding_dim = 128
 
         # Query model is a sequential mixture -- see model for details
         query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
@@ -83,7 +83,7 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
 
         # Candidate model is a simple (non-sequential) hash embedder + FF
         candidate_model = DeepHashEmbedding(
-                hash_embedding_dim=self._hash_embeddings_dim,
+                hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim
         )
 
