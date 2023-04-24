@@ -107,6 +107,8 @@ class HashEmbedding(BaseTFKerasModel):
         """
         Unpack inputs and use the embedding layer's compute_mask to compute
         """
+        if not self._masking:
+            return None
         ids, context = inputs
         return self._embed.compute_mask(ids)
 
@@ -176,6 +178,14 @@ class DeepHashEmbedding(BaseTFKerasModel):
 
         return embeddings
 
+    def compute_mask(self, inputs, mask=None):
+        """
+        Use the embedding layer's compute_mask
+        """
+        if not self._masking:
+            return None
+        return self._embedding.compute_mask(inputs, mask=mask)
+
     def get_config(self):
         config = super().get_config()
         config.update({
@@ -231,7 +241,7 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
         raw_embeddings = self._embedding.__call__(inputs)
         mask = self._embedding.compute_mask(inputs)
 
-        # GRU cell
+        # GRU
         gru_final_state = self._gru.__call__(raw_embeddings, mask=mask)
 
         embeddings = self._final_layer.__call__(
@@ -265,7 +275,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, attention_key_dim=128,
                  attention_heads=4, attention_causal_mask=False, attention_concat=False,
-                 attention_pooling=False, masking=None, feedforward_config=None,
+                 attention_pooling=False, masking=False, feedforward_config=None,
                  name="SequentialDeepHashEmbeddingWithAttention", **kwargs):
 
         super().__init__(
@@ -305,7 +315,15 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
         raw_embeddings = self._embedding.__call__(inputs)
         mask = self._embedding.compute_mask(inputs)
 
-        # Multi-head attention cell
+        # Multi-head attention cell. Mask must be reformatted to fit
+        # query -> key masking of shape (batch, target_shape, seq_shape)
+        if mask is not None:
+            mask = tf.repeat(
+                    tf.expand_dims(mask, axis=-1),
+                    [raw_embeddings.shape[1]],
+                    axis=-1
+            )
+
         raw_embeddings = self._mha.__call__(raw_embeddings, mask=mask)
 
         embeddings = self._final_layer.__call__(
