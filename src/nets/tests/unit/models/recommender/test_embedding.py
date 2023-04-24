@@ -1,6 +1,7 @@
 
 import unittest
 import numpy as np
+import tensorflow as tf
 
 from nets.models.recommender.embedding import \
     StringEmbedding, HashEmbedding, DeepHashEmbedding, \
@@ -11,7 +12,7 @@ from nets.models.recommender.embedding import \
 from nets.tests.utils import try_except_assertion_decorator
 
 
-#TODO: Add tests to cover context features, add tests for padding masks
+#TODO: Add tests to cover context features
 
 class TestStringEmbedding(unittest.TestCase):
 
@@ -54,7 +55,7 @@ class TestStringEmbedding(unittest.TestCase):
     def test_call(self):
         embedder = StringEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
 
@@ -100,7 +101,7 @@ class TestHashEmbedding(unittest.TestCase):
     def test_call(self):
         embedder = HashEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
 
@@ -159,7 +160,7 @@ class TestDeepHashEmbedding(unittest.TestCase):
     def test_call(self):
         embedder = DeepHashEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
 
@@ -170,7 +171,7 @@ class TestSequentialDeepHashEmbeddingWithGRU(unittest.TestCase):
         Create fresh default params for each test.
         """
         self._default_call_inputs = (
-            np.array([["one", "two", "three"], ["four", "five", "six"]]),
+            np.array([[1,2,3], [4,5,6]]),
             None
         )
 
@@ -213,8 +214,21 @@ class TestSequentialDeepHashEmbeddingWithGRU(unittest.TestCase):
     def test_call(self):
         embedder = SequentialDeepHashEmbeddingWithGRU(**self._default_config)
         embedding = embedder(self._default_call_inputs)
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
-            "Embedded dimension does not match configured value."
+        assert tuple(embedding.shape.as_list()) == \
+               (self._default_call_inputs[0].shape[0], self._embedding_dim), \
+            "Embedded output does not match expected shape."
+
+    def test_call_with_masked_input(self):
+        self._default_config.update({"masking": True})
+        unpadded = [[1,2,3], [4,5,6,7]]
+        padded = tf.keras.preprocessing.sequence.pad_sequences(
+                unpadded, padding="post"
+        )
+        embedder = SequentialDeepHashEmbeddingWithGRU(**self._default_config)
+        embedding = embedder((padded, None))
+        assert tuple(embedding.shape.as_list()) == \
+               (padded.shape[0], self._embedding_dim), \
+            "Embedded output does not match expected shape."
 
 
 class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
@@ -224,7 +238,8 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
         Create fresh default params for each test.
         """
         self._default_call_inputs = (
-            np.array([["one", "two", "three"], ["four", "five", "six"]]),
+            np.array([["one", "two", "three"],
+                      ["four", "five", "six"]]),
             None
         )
 
@@ -286,14 +301,13 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
                 **self._default_config
         )
         embedding = embedder(self._default_call_inputs)
-        # Since the default is to not concatenate, the second dimension
-        # should have the same dimension as the sequence length
-        assert len(np.array(embedding).shape) == 3, "Unexpected shape."
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
-            "Embedded dimension does not match configured value."
-        assert np.array(embedding).shape[1] == self._default_call_inputs[0].shape[1], \
-            "Timestep dimension does not match expected value of {}."\
-                .format(self._default_call_inputs[0].shape[1])
+        # Since the default is to not concatenate, the output shape and
+        # dimensions should be the same
+        assert len(embedding.shape.as_list()) == 3, "Unexpected shape."
+        assert tuple(embedding.shape.as_list()[:-1]) == self._default_call_inputs[0].shape, \
+            "Shapes do not match.\nOutput: {}\nInput:{}"\
+                .format(tuple(embedding.shape.as_list()[:-1]),
+                        self._default_call_inputs[0].shape)
 
     def test_call_with_concat(self):
         self._default_config.update({
@@ -305,10 +319,46 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
         embedding = embedder(self._default_call_inputs)
         # If concat is True, then we should have flattened down to 2 dims
         # and the final dim should be == embedding_dim (FF maps down)
-        assert len(np.array(embedding).shape) == 2, "Unexpected shape."
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
+        assert len(embedding.shape.as_list()) == 2, "Unexpected shape."
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Flattened model dim not matching expectations: {}"\
-                .format(np.array(embedding).shape[-1])
+                .format(embedding.shape.as_list()[-1])
+
+    def test_call_with_pooling(self):
+        self._default_config.update({
+            "attention_concat": False, "attention_pooling": True
+        })
+        embedder = SequentialDeepHashEmbeddingWithAttention(
+                **self._default_config
+        )
+        embedding = embedder(self._default_call_inputs)
+        # If pooling is True, then we should have averaged over the timestep
+        # dimension, and again have 2 dims with final dim == embedding_dim
+        assert len(embedding.shape.as_list()) == 2, "Unexpected shape."
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
+            "Flattened model dim not matching expectations: {}"\
+                .format(embedding.shape.as_list()[-1])
+
+    def test_call_with_masked_input(self):
+        self._default_config.update({"masking": True})
+        unpadded = [[1,2,3], [4,5,6,7]]
+        padded = tf.keras.preprocessing.sequence.pad_sequences(
+                unpadded, padding="post"
+        )
+        embedder = SequentialDeepHashEmbeddingWithAttention(**self._default_config)
+        embedding = embedder((padded, None))
+
+        # With default call behavior, the steps dim should now be 4 with the
+        # padded inputs, and otherwise be the same
+        assert len(embedding.shape.as_list()) == 3, "Unexpected shape."
+        assert embedding.shape.as_list()[1] == 4, "Output steps not padded?"
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
+            "Embedded dimension does not match configured value."
+        # Check to see that the mask propagated
+        assert embedding._keras_mask is not None, "Mask did not propagate."
+        assert embedder.compute_mask((padded, None))[0, -1] == False, \
+            "Mask not propagated/expanded as expected: {}"\
+                .format(embedding._embedding._keras_mask.numpy())
 
 
 class TestSequentialDeepHashEmbeddingMixtureOfExperts(unittest.TestCase):
@@ -318,7 +368,8 @@ class TestSequentialDeepHashEmbeddingMixtureOfExperts(unittest.TestCase):
         Create fresh default params for each test.
         """
         self._default_call_inputs = (
-            np.array([["one", "two", "three"], ["four", "five", "six"]]),
+            np.array([["one", "two", "three"],
+                      ["four", "five", "six"]]),
             None
         )
 
@@ -364,6 +415,6 @@ class TestSequentialDeepHashEmbeddingMixtureOfExperts(unittest.TestCase):
                 **self._default_config
         )
         embedding = embedder(self._default_call_inputs)
-        assert len(np.array(embedding).shape) == 2, "Unexpected shape."
-        assert np.array(embedding).shape[-1] == self._embedding_dim, \
+        assert len(embedding.shape.as_list()) == 2, "Unexpected shape."
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."

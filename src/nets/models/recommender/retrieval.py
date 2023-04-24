@@ -10,6 +10,7 @@ from nets.models.recommender.embedding import DeepHashEmbedding, \
 @tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
     """
+    Basic two tower retrieval.
     """
     def __init__(self, query_model, candidate_model, query_id,
                  candidate_id, query_context_features=None,
@@ -42,9 +43,6 @@ class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
 
     @tf.function
     def compute_loss(self, features, training=True):
-        """
-        Compute loss for a batch by invoking the task
-        """
         query_embeddings, candidate_embeddings = self.__call__(features)
         return self._task.__call__(
                 query_embeddings=query_embeddings,
@@ -72,7 +70,7 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
                  name="SelfAttentionMixtureOfExpertsRetrieval", **kwargs):
 
         self._embedding_dim = embedding_dim
-        self._hash_embeddings_dim = 128
+        self._hash_embedding_dim = 128
 
         # Query model is a sequential mixture -- see model for details
         query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
@@ -83,7 +81,7 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
 
         # Candidate model is a simple (non-sequential) hash embedder + FF
         candidate_model = DeepHashEmbedding(
-                hash_embedding_dim=self._hash_embeddings_dim,
+                hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim
         )
 
