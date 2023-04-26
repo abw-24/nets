@@ -100,3 +100,120 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
             "concat": self._concat
         })
         return config
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class PositionEncoding(tf.keras.layers.Layer):
+    """
+    BERT-style positional encoding. Requires a maximum length.
+
+    Based on the `tfm` implementation.
+    """
+
+    def __init__(self, max_length, seq_axis=1, **kwargs):
+
+        super().__init__(**kwargs)
+        self._max_length = max_length
+        self._initializer = tf.keras.initializers.get("glorot_uniform")
+        self._seq_axis = seq_axis
+
+        self._position_embeddings = None
+        self._embedded_dim = None
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "max_length": self._max_length,
+            "seq_axis": self._seq_axis,
+        })
+        return config
+
+    def build(self, input_shape):
+
+        embedded_dim = input_shape.as_list()[-1]
+        self._position_embeddings = self.add_weight(
+                "embeddings",
+                shape=[self._max_length, embedded_dim],
+                initializer=self._initializer
+        )
+
+        super().build(input_shape)
+
+    def call(self, inputs):
+        """
+        Grab embeddings from lookup for positions present in the batch input
+        (0 through size of `seq_axis`), and broadcast to full input size
+        """
+        input_shape = tf.shape(inputs)
+
+        # Grab encodings for current sequence positions (0 through seq_len)
+        seq_len = input_shape[self._seq_axis]
+        position_embeddings = self._position_embeddings[:seq_len, :]
+
+        # Create a new shape placeholder (1, seq_len, embedding_dim)
+        new_shape = [1 for _ in inputs.get_shape().as_list()]
+        new_shape[self._seq_axis] = seq_len
+        new_shape[-1] = self._embedded_dim
+
+        # Reshape embeddings to (1, seq_len, embedding_dim)
+        position_embeddings = tf.reshape(position_embeddings, new_shape)
+
+        # Broadcast to full (batch, seq_len, embedding_dim)
+        return tf.broadcast_to(position_embeddings, input_shape)
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class RelativePositionEmbedding(tf.keras.layers.Layer):
+    """
+    Attention-is-all-you-need style positional encodings using trigonometric
+      functions. Does not require a maxium length.
+
+      Based on the `tfm` implementation.
+    """
+
+    def __init__(self, hidden_size, min_timescale=1.0,
+                 max_timescale = 1.0e4, **kwargs):
+
+        # Unless otherwise specified, default to float32
+        if "dtype" not in kwargs:
+            kwargs["dtype"] = "float32"
+
+        super().__init__(**kwargs)
+
+        self._hidden_size = hidden_size
+        self._min_timescale = min_timescale
+        self._max_timescale = max_timescale
+
+    def call(self, inputs, training=True):
+
+        input_shape = tf.shape(inputs)
+        length = input_shape[1]
+        position = tf.cast(tf.range(length), tf.float32)
+        num_timescales = self._hidden_size // 2
+
+        min_timescale, max_timescale = self._min_timescale, self._max_timescale
+
+        log_timescale_increment = (
+            tf.math.log(float(max_timescale) / float(min_timescale)) /
+            (tf.cast(num_timescales, tf.float32) - 1)
+        )
+        inv_timescales = min_timescale * tf.exp(
+                tf.cast(tf.range(num_timescales), tf.float32) *
+                -log_timescale_increment
+        )
+        scaled_time = tf.expand_dims(position, 1) * tf.expand_dims(
+                inv_timescales, 0
+        )
+        position_embeddings = tf.concat(
+                [tf.sin(scaled_time), tf.cos(scaled_time)], 1
+        )
+        return position_embeddings
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "hidden_size": self._hidden_size,
+            "min_timescale": self._min_timescale,
+            "max_timescale": self._max_timescale,
+        })
+        return config
