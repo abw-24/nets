@@ -3,15 +3,19 @@ import tensorflow as tf
 
 from nets.models.base import BaseTFKerasModel
 from nets.layers.dense import DenseBlock
-from nets.layers.sequence import MultiHeadSelfAttention
+from nets.layers.sequence import MultiHeadSelfAttention, \
+    RelativePositionEncoding, PositionEncoding
 from nets.models.mixture import GatedMixtureABC
+
+#TODO: abstract basic embedding (StringEmbedding, HashEmbedding) functionality
 
 
 @tf.keras.utils.register_keras_serializable("nets")
 class StringEmbedding(BaseTFKerasModel):
 
     def __init__(self, vocab, embedding_dim=32, context_model=None,
-                 masking=False, mask_token="[PAD]", name="StringEmbedding"):
+                 masking=False, mask_token="[PAD]", position_encoding=None,
+                 max_length=None, name="StringEmbedding"):
 
         super().__init__(name=name)
 
@@ -20,16 +24,40 @@ class StringEmbedding(BaseTFKerasModel):
         self._context_model = context_model
         self._masking = masking
         self._mask_token = mask_token
+        self._position_encoding = position_encoding.lower()
+        self._max_length = max_length
 
-        # Create a tf constant boolean for checking during call
+        # Create flags to check during call
+        #TODO: experiment with tf.constant vs. pure python with AutoGraph
         self._context_flag = self._context_model is not None
+        self._position_encoding_flag = self._position_encoding is not None
 
         self._lookup = tf.keras.layers.StringLookup(
                 vocabulary=self._vocab, mask_token=self._mask_token
         )
         self._embed = tf.keras.layers.Embedding(
-                len(self._vocab) + 1, embedding_dim, mask_zero=self._masking
+                len(self._vocab) + 1,
+                self._embedding_dim,
+                mask_zero=self._masking
         )
+
+        # If we got a position encoding, try and resolve it
+        if self._position_encoding_flag:
+            if self._position_encoding == "relative":
+                self._position_encoder = RelativePositionEncoding(
+                        self._embedding_dim
+                )
+            elif self._position_encoding == "bert":
+                assert self._max_length is not None, \
+                    "Requested BERT style positional encodings but did not " \
+                    "provide a max sequence length"
+                self._position_encoder = PositionEncoding(
+                    max_length=self._max_length
+                )
+            else:
+                raise ValueError("Requested unrecognized encoding option: {}"
+                                 .format(self._position_encoding))
+
 
     def call(self, inputs, training=True):
         embedding_id, context = inputs
@@ -42,6 +70,11 @@ class StringEmbedding(BaseTFKerasModel):
             embeddings = tf.concat(
                     [embeddings, context_embeddings], -1
             )
+
+        # If we have a positional encoder, call and add
+        if self._position_encoding_flag:
+            encodings = self._position_encoder(embeddings)
+            embeddings = embeddings + encodings
 
         return embeddings
 
@@ -60,7 +93,8 @@ class StringEmbedding(BaseTFKerasModel):
             "vocab": self._vocab,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "masking": self._masking
+            "masking": self._masking,
+            "position_encoding": self._position_encoding
         })
         return config
 
@@ -72,8 +106,8 @@ class StringEmbedding(BaseTFKerasModel):
 @tf.keras.utils.register_keras_serializable("nets")
 class HashEmbedding(BaseTFKerasModel):
 
-    def __init__(self, hash_bins=262144, embedding_dim=32,
-                 context_model=None, masking=False, name="HashEmbedding"):
+    def __init__(self, hash_bins=262144, embedding_dim=32, context_model=None,
+                 masking=False, position_encoding=None, name="HashEmbedding"):
 
         super().__init__(name=name)
 
@@ -81,9 +115,12 @@ class HashEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
         self._masking = masking
+        self._position_encoding = position_encoding
 
-        # Create a tf constant boolean for checking during call
+        # Create flags to check during call
+        #TODO: experiment with tf.constant vs. pure python when using AutoGraph
         self._context_flag = self._context_model is not None
+        self._position_encoding_flag = self._position_encoding is not None
 
         self._lookup = tf.keras.layers.Hashing(
                 num_bins=self._hash_bins
@@ -91,6 +128,23 @@ class HashEmbedding(BaseTFKerasModel):
         self._embed = tf.keras.layers.Embedding(
                 self._hash_bins, embedding_dim, mask_zero=self._masking
         )
+
+        # If we got a position encoding, try and resolve it
+        if self._position_encoding_flag:
+            if self._position_encoding == "relative":
+                self._position_encoder = RelativePositionEncoding(
+                        self._embedding_dim
+                )
+            elif self._position_encoding == "bert":
+                assert self._max_seq_length is not None, \
+                    "Requested BERT style positional encodings but did not " \
+                    "provide a max sequence length"
+                self._position_encoder = PositionEncoding(
+                    max_length=self._max_seq_length
+                )
+            else:
+                raise ValueError("Requested unrecognized encoding option: {}"
+                                 .format(self._position_encoding))
 
     def call(self, inputs, training=True):
         embedding_id, context = inputs
@@ -103,6 +157,11 @@ class HashEmbedding(BaseTFKerasModel):
             embeddings = tf.concat(
                     [embeddings, context_embeddings], -1
             )
+
+        # If we have a positional encoder, call and add
+        if self._position_encoding_flag:
+            encodings = self._position_encoder(embeddings)
+            embeddings = embeddings + encodings
 
         return embeddings
 
@@ -121,7 +180,8 @@ class HashEmbedding(BaseTFKerasModel):
             "hash_bins": self._hash_bins,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "masking": self._masking
+            "masking": self._masking,
+            "position_encoding": self._position_encoding
         })
         return config
 
@@ -140,10 +200,10 @@ class DeepHashEmbedding(BaseTFKerasModel):
     }
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64, embedding_dim=16,
-                context_model=None, name="DeepHashEmbedding",
-                 feedforward_config=None, masking=False, **kwargs):
+                context_model=None, feedforward_config=None, masking=False,
+                position_encoding=None, name="DeepHashEmbedding", **kwargs):
 
-        super().__init__(name=name)
+        super().__init__(name=name, **kwargs)
 
         if feedforward_config is not None:
             self._feedforward_config.update(feedforward_config)
@@ -153,12 +213,14 @@ class DeepHashEmbedding(BaseTFKerasModel):
         self._embedding_dim = embedding_dim
         self._context_model = context_model
         self._masking = masking
+        self._position_encoding = position_encoding
 
         self._embedding = HashEmbedding(
                     hash_bins=self._hash_bins,
                     embedding_dim=self._hash_embedding_dim,
                     context_model=self._context_model,
-                    masking=self._masking
+                    masking=self._masking,
+                    position_encoding=self._position_encoding
         )
 
         self._dense_block = DenseBlock.from_config(
@@ -170,7 +232,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
 
     def call(self, inputs, training=True):
 
-        # Embedding layer handles parsing the id and context
+        # Embedding layer handles parsing the id and context, plus
+        # any configured positional encoding
         raw_embeddings = self._embedding.__call__(inputs)
 
         embeddings = self._final_layer.__call__(
@@ -196,7 +259,8 @@ class DeepHashEmbedding(BaseTFKerasModel):
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
             "context_model": self._context_model,
-            "masking": self._masking
+            "masking": self._masking,
+            "position_encoding": self._position_encoding
         })
         config.update(self._feedforward_config)
         return config
@@ -218,8 +282,8 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, gru_dim=None,
-                 name="SequentialDeepHashEmbeddingWithGRU", masking=False,
-                 feedforward_config=None, **kwargs):
+                 feedforward_config=None, masking=False,
+                 name="SequentialDeepHashEmbeddingWithGRU", **kwargs):
 
         super().__init__(
             hash_bins=hash_bins,
@@ -228,6 +292,7 @@ class SequentialDeepHashEmbeddingWithGRU(DeepHashEmbedding):
             context_model=context_model,
             feedforward_config=feedforward_config,
             masking=masking,
+            position_encoding=None,
             name=name,
             **kwargs
         )
@@ -277,8 +342,9 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
 
     def __init__(self, hash_bins=200000, hash_embedding_dim=64,
                  embedding_dim=16, context_model=None, attention_key_dim=128,
-                 attention_heads=4, attention_causal_mask=False, attention_concat=False,
-                 attention_pooling=False, masking=False, feedforward_config=None,
+                 attention_heads=4, attention_causal_mask=False,
+                 attention_concat=False, attention_pooling=False, masking=False,
+                 feedforward_config=None, position_encoding=None,
                  name="SequentialDeepHashEmbeddingWithAttention", **kwargs):
 
         super().__init__(
@@ -288,6 +354,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             context_model=context_model,
             feedforward_config=feedforward_config,
             masking=masking,
+            position_encoding=position_encoding,
             name=name,
             **kwargs
         )
@@ -341,7 +408,9 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             "attention_causal_mask": self._attention_causal_mask,
             "attention_pooling": self._attention_pooling,
             "attention_concat": self._attention_concat,
-            "masking": self._masking
+            "masking": self._masking,
+            "feedforward_config": self._feedforward_config,
+            "position_encoding": self._position_encoding
         })
         config.update(self._feedforward_config)
         return config
