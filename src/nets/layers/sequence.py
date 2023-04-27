@@ -113,6 +113,11 @@ class PositionEncoding(tf.keras.layers.Layer):
     def __init__(self, max_length, seq_axis=1, **kwargs):
 
         super().__init__(**kwargs)
+
+        # Make sure we set `supports_masking` to True to pass through
+        # masks coming from embedded inputs
+        self._supports_masking = True
+
         self._max_length = max_length
         self._initializer = tf.keras.initializers.get("glorot_uniform")
         self._seq_axis = seq_axis
@@ -172,6 +177,10 @@ class RelativePositionEncoding(tf.keras.layers.Layer):
             kwargs["dtype"] = "float32"
 
         super().__init__(**kwargs)
+
+        # Make sure we set `supports_masking` to True to pass through
+        # masks coming from embedded inputs
+        self._supports_masking = True
 
         self._hidden_dim = hidden_dim
         self._min_timescale = min_timescale
