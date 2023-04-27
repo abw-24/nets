@@ -25,7 +25,8 @@ class TestStringEmbedding(unittest.TestCase):
 
         self._default_config = {
             "vocab": self._vocab,
-            "embedding_dim": self._embedding_dim
+            "embedding_dim": self._embedding_dim,
+            "position_encoding": None
         }
 
     @try_except_assertion_decorator
@@ -34,9 +35,7 @@ class TestStringEmbedding(unittest.TestCase):
 
     @try_except_assertion_decorator
     def test_build(self):
-        _ = StringEmbedding(
-                vocab=self._vocab, embedding_dim=self._embedding_dim
-        )
+        _ = StringEmbedding(**self._default_config)
 
     @try_except_assertion_decorator
     def test_build_from_config(self):
@@ -53,6 +52,25 @@ class TestStringEmbedding(unittest.TestCase):
             """.format(self._default_config, c)
 
     def test_call(self):
+        embedder = StringEmbedding(**self._default_config)
+        embedding = embedder((np.array(["one"]), None))
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
+            "Embedded dimension does not match configured value."
+
+    def test_call_with_positional_encoding(self):
+        self._default_config.update({
+            "positional_encoding": "bert",
+            "max_length": 100
+        })
+        embedder = StringEmbedding(**self._default_config)
+        embedding = embedder((np.array(["one"]), None))
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
+            "Embedded dimension does not match configured value."
+
+    def test_call_with_relative_positional_encoding(self):
+        self._default_config.update({
+            "positional_encoding": "relative"
+        })
         embedder = StringEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
         assert embedding.shape.as_list()[-1] == self._embedding_dim, \
@@ -99,6 +117,23 @@ class TestHashEmbedding(unittest.TestCase):
             """.format(self._default_config, c)
 
     def test_call(self):
+        embedder = HashEmbedding(**self._default_config)
+        embedding = embedder((np.array(["one"]), None))
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
+            "Embedded dimension does not match configured value."
+
+    def test_call_with_positional_encoding(self):
+        self._default_config.update({
+            "positional_encoding": "bert",
+            "max_length": 100
+        })
+        embedder = HashEmbedding(**self._default_config)
+        embedding = embedder((np.array(["one"]), None))
+        assert embedding.shape.as_list()[-1] == self._embedding_dim, \
+            "Embedded dimension does not match configured value."
+
+    def test_call_with_relative_positional_encoding(self):
+        self._default_config.update({"positional_encoding": "relative"})
         embedder = HashEmbedding(**self._default_config)
         embedding = embedder((np.array(["one"]), None))
         assert embedding.shape.as_list()[-1] == self._embedding_dim, \
