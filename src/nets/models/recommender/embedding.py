@@ -49,8 +49,10 @@ class StringEmbedding(BaseTFKerasModel):
         """
         Unpack inputs and use the embedding layer's compute_mask to compute
         """
+        if not self._masking:
+            return None
         ids, context = inputs
-        return self._embed.compute_mask(ids)
+        return self._embed.compute_mask(ids, mask=mask)
 
     def get_config(self):
         config = super().get_config()
@@ -111,7 +113,7 @@ class HashEmbedding(BaseTFKerasModel):
         if not self._masking:
             return None
         ids, context = inputs
-        return self._embed.compute_mask(ids)
+        return self._embed.compute_mask(ids, mask=mask)
 
     def get_config(self):
         config = super().get_config()
@@ -316,7 +318,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
         raw_embeddings = self._embedding.__call__(inputs)
         mask = self._embedding.compute_mask(inputs)
 
-        # Propagate masks. MHA layer will reofrmat as needed
+        # Propagate masks. MHA layer will reformat as needed
         raw_embeddings = self._mha.__call__(raw_embeddings, mask=mask)
 
         embeddings = self._final_layer.__call__(
