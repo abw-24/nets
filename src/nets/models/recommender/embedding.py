@@ -352,7 +352,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
                  embedding_dim=16, context_model=None, attention_key_dim=128,
                  attention_heads=4, attention_causal_mask=False,
                  attention_concat=False, attention_pooling=False, masking=False,
-                 feedforward_config=None, position_encoding=None,
+                 feedforward_config=None, position_encoding="relative", max_length=None,
                  name="SequentialDeepHashEmbeddingWithAttention", **kwargs):
 
         super().__init__(
@@ -363,6 +363,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
             feedforward_config=feedforward_config,
             masking=masking,
             position_encoding=position_encoding,
+            max_length=max_length,
             name=name,
             **kwargs
         )
