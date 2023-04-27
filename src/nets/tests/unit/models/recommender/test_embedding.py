@@ -20,7 +20,8 @@ class TestStringEmbedding(unittest.TestCase):
         """
         Create fresh default params for each test.
         """
-        self._vocab = np.array(["one", "two", "three", "four", "five"])
+        self._vocab = np.array(["one", "two", "three", "four",
+                                "five", "six", "seven", "eight", "nine"])
         self._embedding_dim = 2
 
         self._default_config = {
@@ -59,20 +60,30 @@ class TestStringEmbedding(unittest.TestCase):
 
     def test_call_with_positional_encoding(self):
         self._default_config.update({
-            "positional_encoding": "bert",
+            "position_encoding": "bert",
             "max_length": 100
         })
         embedder = StringEmbedding(**self._default_config)
-        embedding = embedder((np.array(["one"]), None))
+
+        inputs = tf.convert_to_tensor(
+                [[["one", "two"], ["three", "four"]],
+                 [["five", "six"], ["seven", "eight"]]]
+        )
+        embedding = embedder((inputs, None))
         assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
     def test_call_with_relative_positional_encoding(self):
         self._default_config.update({
-            "positional_encoding": "relative"
+            "position_encoding": "relative"
         })
         embedder = StringEmbedding(**self._default_config)
-        embedding = embedder((np.array(["one"]), None))
+
+        inputs = tf.convert_to_tensor(
+                [[["one", "two"], ["three", "four"]],
+                 [["five", "six"], ["seven", "eight"]]]
+        )
+        embedding = embedder((inputs, None))
         assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
@@ -124,18 +135,28 @@ class TestHashEmbedding(unittest.TestCase):
 
     def test_call_with_positional_encoding(self):
         self._default_config.update({
-            "positional_encoding": "bert",
+            "position_encoding": "bert",
             "max_length": 100
         })
         embedder = HashEmbedding(**self._default_config)
-        embedding = embedder((np.array(["one"]), None))
+
+        inputs = tf.convert_to_tensor(
+                [[["one", "two"], ["three", "four"]],
+                 [["five", "six"], ["seven", "eight"]]]
+        )
+        embedding = embedder((inputs, None))
         assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
     def test_call_with_relative_positional_encoding(self):
-        self._default_config.update({"positional_encoding": "relative"})
+        self._default_config.update({"position_encoding": "relative"})
         embedder = HashEmbedding(**self._default_config)
-        embedding = embedder((np.array(["one"]), None))
+
+        inputs = tf.convert_to_tensor(
+                [[["one", "two"], ["three", "four"]],
+                 [["five", "six"], ["seven", "eight"]]]
+        )
+        embedding = embedder((inputs, None))
         assert embedding.shape.as_list()[-1] == self._embedding_dim, \
             "Embedded dimension does not match configured value."
 
@@ -304,14 +325,7 @@ class TestSequentialDeepHashEmbeddingWithAttention(unittest.TestCase):
 
     @try_except_assertion_decorator
     def test_build(self):
-        _ = SequentialDeepHashEmbeddingWithAttention(
-                hash_bins=self._hash_bins,
-                embedding_dim=self._embedding_dim,
-                attention_key_dim=self._attention_key_dim,
-                attention_mask=self._attention_mask,
-                attention_heads=self._attention_heads,
-                attention_concat=self._attention_concat
-        )
+        _ = SequentialDeepHashEmbeddingWithAttention(**self._default_config)
 
     @try_except_assertion_decorator
     def test_build_from_config(self):
