@@ -11,7 +11,6 @@ Tensorflow 2.x network architectures
 ```python
 import nets.models.recommender.retrieval as ret
 import nets.models.recommender.embedding as emb
-import nets.models.mlp as mlp
 
 import tensorflow as tf
 
