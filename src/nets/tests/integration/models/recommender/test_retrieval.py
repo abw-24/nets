@@ -8,11 +8,11 @@ from nets.models.recommender.embedding import DeepHashEmbedding
 from nets.models.recommender.embedding import HashEmbedding
 
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    RecommenderIntegrationTrait
+    RecommenderIntegrationMixin
 from nets.tests.utils import *
 
 
-class TestTwoTowerRetrieval(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
+class TestTwoTowerRetrieval(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
     """
     """
 

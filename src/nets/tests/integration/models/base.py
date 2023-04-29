@@ -84,9 +84,9 @@ class ModelIntegrationABC(ABC):
         raise NotImplementedError("Abstract")
 
 
-class ModelIntegrationTrait(object):
+class ModelIntegrationMixin(object):
     """
-    Common concrete methods for all integration trait flavors.
+    Common concrete methods for all integration mixin flavors.
         - `tearDown` deletes any artifacts saved at `temp` (may need to be
         overwritten by certain children)
         - `test_build` is a generic test for creating the default model
@@ -121,10 +121,10 @@ class ModelIntegrationTrait(object):
         )
 
 
-class RecommenderIntegrationTrait(ModelIntegrationTrait):
+class RecommenderIntegrationMixin(ModelIntegrationMixin):
 
     """
-    Base trait for recommender model testing. Implements several of the base
+    Base mixin for recommender model testing. Implements several of the base
     ABC's abstract methods:
         - `setUpClass` reads and preps movielens data
         - `tearDownClass` deletes movielens data and any artifacts at temp path
@@ -233,9 +233,9 @@ class RecommenderIntegrationTrait(ModelIntegrationTrait):
         _ = tf.saved_model.load(self.temp)
 
 
-class ListwiseRecommenderIntegrationTrait(RecommenderIntegrationTrait):
+class ListwiseRecommenderIntegrationMixin(RecommenderIntegrationMixin):
     """
-    Listwise flavor of recommender integration trait. Uses tfrs helpers
+    Listwise flavor of recommender integration Mixin. Uses tfrs helpers
     to reformat ratings data for listwise loss. Currently does not work
     as expected...
     """
@@ -272,10 +272,10 @@ class ListwiseRecommenderIntegrationTrait(RecommenderIntegrationTrait):
             .batch(100)
 
 
-class DenseIntegrationTrait(ModelIntegrationTrait):
+class DenseIntegrationMixin(ModelIntegrationMixin):
 
     """
-    Trait for dense model testing. Implements several of the base ABCs
+    Mixin for dense model testing. Implements several of the base ABCs
     abstract methods:
         - `setUpClass` reads and preps mnist data
         - `tearDownClass` deletes mnist movielens data
