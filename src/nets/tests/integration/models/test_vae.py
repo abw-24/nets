@@ -6,11 +6,11 @@ import os
 from nets.models.vae import GaussianDenseVAE
 
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    DenseIntegrationTrait
+    DenseIntegrationMixin
 from nets.tests.utils import *
 
 
-class TestVAE(DenseIntegrationTrait, ModelIntegrationABC, TC):
+class TestVAE(DenseIntegrationMixin, ModelIntegrationABC, TC):
 
     temp = os.path.join(os.getcwd(), "vae-tmp-model")
 

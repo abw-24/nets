@@ -3,17 +3,17 @@ from unittest import TestCase as TC
 import tensorflow as tf
 import os
 
-from nets.models.mixture import GatedMixtureABC
+from nets.models.mixture import GatedMixture
 from nets.models.mlp import MLP
 
 from nets.tests.integration.models.base import \
-    DenseIntegrationTrait, ModelIntegrationABC
+    DenseIntegrationMixin, ModelIntegrationABC
 from nets.tests.utils import obj_from_config
 
 
-# Test model using the mixture trait
+# Test model using the mixture mixin
 @tf.keras.utils.register_keras_serializable("nets")
-class SimpleMixture(GatedMixtureABC):
+class SimpleMixture(GatedMixture):
 
     def __init__(self, **kwargs):
 
@@ -43,7 +43,7 @@ class SimpleMixture(GatedMixtureABC):
         return {}
 
 
-class TestGatedMixture(DenseIntegrationTrait, ModelIntegrationABC, TC):
+class TestGatedMixture(DenseIntegrationMixin, ModelIntegrationABC, TC):
 
     temp = os.path.join(os.getcwd(), "mixture-tmp-model")
 

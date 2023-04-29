@@ -6,11 +6,11 @@ import os
 from nets.models.mlp import MLP
 
 from nets.tests.integration.models.base import \
-    DenseIntegrationTrait, ModelIntegrationABC
+    DenseIntegrationMixin, ModelIntegrationABC
 from nets.tests.utils import *
 
 
-class TestMLP(DenseIntegrationTrait, ModelIntegrationABC, TC):
+class TestMLP(DenseIntegrationMixin, ModelIntegrationABC, TC):
 
     temp = os.path.join(os.getcwd(), "mlp-tmp-model")
 

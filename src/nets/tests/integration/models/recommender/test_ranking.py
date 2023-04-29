@@ -10,12 +10,12 @@ from nets.models.recommender.embedding import HashEmbedding
 from nets.models.mlp import MLP
 
 from nets.tests.integration.models.base import ModelIntegrationABC, \
-    RecommenderIntegrationTrait, ListwiseRecommenderIntegrationTrait
+    RecommenderIntegrationMixin, ListwiseRecommenderIntegrationMixin
 from nets.tests.utils import obj_from_config
 
 
 #TODO: add context model tests
-class TestTwoTowerRanking(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
+class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
     """
     """
 
@@ -51,7 +51,7 @@ class TestTwoTowerRanking(RecommenderIntegrationTrait, ModelIntegrationABC, TC):
 
 
 @skip
-class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationTrait, TestTwoTowerRanking):
+class TestListwiseTwoTowerRanking(ListwiseRecommenderIntegrationMixin, TestTwoTowerRanking):
     """
     """
 
