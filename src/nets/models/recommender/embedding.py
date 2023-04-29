@@ -5,13 +5,82 @@ from nets.models.base import BaseTFKerasModel
 from nets.layers.dense import DenseBlock
 from nets.layers.sequence import MultiHeadSelfAttention, \
     RelativePositionEncoding, PositionEncoding
-from nets.models.mixture import GatedMixtureABC
+from nets.models.mixture import GatedMixture
 
-#TODO: abstract basic embedding (StringEmbedding, HashEmbedding) functionality
+
+class EmbeddingMixin(object):
+    """
+    Common concrete methods for StringEmbedding and HashEmbedding.
+    Class attributes specified below expected to be re-assigned by
+    the implemented child classes (where appropriate).
+    """
+
+    _embedding_dim = None
+    _max_length = None
+    _position_encoding = None
+    _position_encoder = None
+    _position_encoding_flag = None
+    _embed = None
+    _lookup = None
+    _context_model = None
+    _context_flag = None
+    _masking = None
+
+    def _set_position_encoder(self):
+
+        self._position_encoding = self._position_encoding.lower()
+
+        if self._position_encoding == "relative":
+                self._position_encoder = RelativePositionEncoding(
+                        self._embedding_dim
+                )
+        elif self._position_encoding == "bert":
+                assert self._max_length is not None, \
+                    "Requested BERT style positional encodings but did not " \
+                    "provide a max sequence length"
+                self._position_encoder = PositionEncoding(
+                    max_length=self._max_length
+                )
+        else:
+            raise ValueError("Requested unrecognized encoding option: {}"
+                                 .format(self._position_encoding))
+
+    def call(self, inputs, training=True):
+
+        embedding_id, context = inputs
+        embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
+
+        if self._context_flag:
+            context_embeddings = self._context_model.__call__(context)
+            # Concat along the last (embedding) axis.
+            # Note: this assumes a "channels last" data format
+            embeddings = tf.concat(
+                    [embeddings, context_embeddings], -1
+            )
+
+        # If we have a positional encoder, call and add
+        if self._position_encoding_flag:
+            encodings = self._position_encoder.__call__(embeddings)
+            embeddings = embeddings + encodings
+
+        return embeddings
+
+    def compute_mask(self, inputs, mask=None):
+        """
+        Unpack inputs and use the embedding layer's compute_mask to compute
+        """
+        if not self._masking:
+            return None
+        ids, context = inputs
+        return self._embed.compute_mask(ids, mask=mask)
+
+    @property
+    def context_model(self):
+        return self._context_model
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class StringEmbedding(BaseTFKerasModel):
+class StringEmbedding(EmbeddingMixin, BaseTFKerasModel):
 
     def __init__(self, vocab, embedding_dim=32, context_model=None,
                  masking=False, mask_token="[PAD]", position_encoding=None,
@@ -41,52 +110,9 @@ class StringEmbedding(BaseTFKerasModel):
                 mask_zero=self._masking
         )
 
-        # If we got a position encoding, try and resolve it
+        # If we got a position encoding arg, resolve it
         if self._position_encoding_flag:
-            self._position_encoding = self._position_encoding.lower()
-            if self._position_encoding == "relative":
-                self._position_encoder = RelativePositionEncoding(
-                        self._embedding_dim
-                )
-            elif self._position_encoding == "bert":
-                assert self._max_length is not None, \
-                    "Requested BERT style positional encodings but did not " \
-                    "provide a max sequence length"
-                self._position_encoder = PositionEncoding(
-                    max_length=self._max_length
-                )
-            else:
-                raise ValueError("Requested unrecognized encoding option: {}"
-                                 .format(self._position_encoding))
-
-
-    def call(self, inputs, training=True):
-        embedding_id, context = inputs
-        embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
-
-        if self._context_flag:
-            context_embeddings = self._context_model(context)
-            # Concat along the last (embedding) axis.
-            # Note: this assumes a "channels last" data format
-            embeddings = tf.concat(
-                    [embeddings, context_embeddings], -1
-            )
-
-        # If we have a positional encoder, call and add
-        if self._position_encoding_flag:
-            encodings = self._position_encoder(embeddings)
-            embeddings = embeddings + encodings
-
-        return embeddings
-
-    def compute_mask(self, inputs, mask=None):
-        """
-        Unpack inputs and use the embedding layer's compute_mask to compute
-        """
-        if not self._masking:
-            return None
-        ids, context = inputs
-        return self._embed.compute_mask(ids, mask=mask)
+            self._set_position_encoder()
 
     def get_config(self):
         config = super().get_config()
@@ -99,13 +125,9 @@ class StringEmbedding(BaseTFKerasModel):
         })
         return config
 
-    @property
-    def context_model(self):
-        return self._context_model
-
 
 @tf.keras.utils.register_keras_serializable("nets")
-class HashEmbedding(BaseTFKerasModel):
+class HashEmbedding(EmbeddingMixin, BaseTFKerasModel):
 
     def __init__(self, hash_bins=262144, embedding_dim=32, context_model=None,
                  masking=False, position_encoding=None, max_length=None,
@@ -134,50 +156,7 @@ class HashEmbedding(BaseTFKerasModel):
 
         # If we got a position encoding, try and resolve it
         if self._position_encoding_flag:
-            self._position_encoding = self._position_encoding.lower()
-            if self._position_encoding == "relative":
-                self._position_encoder = RelativePositionEncoding(
-                        self._embedding_dim
-                )
-            elif self._position_encoding == "bert":
-                assert self._max_length is not None, \
-                    "Requested BERT style positional encodings but did not " \
-                    "provide a max sequence length"
-                self._position_encoder = PositionEncoding(
-                    max_length=self._max_length
-                )
-            else:
-                raise ValueError("Requested unrecognized encoding option: {}"
-                                 .format(self._position_encoding))
-
-
-    def call(self, inputs, training=True):
-        embedding_id, context = inputs
-        embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
-
-        if self._context_flag:
-            context_embeddings = self._context_model(context)
-            # Concat along the last (embedding) axis.
-            # Note: this assumes a "channels last" data format
-            embeddings = tf.concat(
-                    [embeddings, context_embeddings], -1
-            )
-
-        # If we have a positional encoder, call and add
-        if self._position_encoding_flag:
-            encodings = self._position_encoder.__call__(embeddings)
-            embeddings = embeddings + encodings
-
-        return embeddings
-
-    def compute_mask(self, inputs, mask=None):
-        """
-        Unpack inputs and use the embedding layer's compute_mask to compute
-        """
-        if not self._masking:
-            return None
-        ids, context = inputs
-        return self._embed.compute_mask(ids, mask=mask)
+            self._set_position_encoder()
 
     def get_config(self):
         config = super().get_config()
@@ -189,10 +168,6 @@ class HashEmbedding(BaseTFKerasModel):
             "position_encoding": self._position_encoding
         })
         return config
-
-    @property
-    def context_model(self):
-        return self._context_model
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -426,7 +401,7 @@ class SequentialDeepHashEmbeddingWithAttention(DeepHashEmbedding):
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixtureABC):
+class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
     """
     Sequential mixture of experts.
 
