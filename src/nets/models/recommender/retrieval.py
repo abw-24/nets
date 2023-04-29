@@ -2,13 +2,13 @@
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 
-from .base import TwoTowerABC, TwoTowerTrait
+from .base import TwoTowerABC, TwoTowerMixin
 from nets.models.recommender.embedding import DeepHashEmbedding, \
     SequentialDeepHashEmbeddingMixtureOfExperts
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRetrieval(TwoTowerTrait, TwoTowerABC):
+class TwoTowerRetrieval(TwoTowerMixin, TwoTowerABC):
     """
     Basic two tower retrieval.
     """

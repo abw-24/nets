@@ -28,7 +28,7 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
         return self._candidate_model
 
 
-class TwoTowerTrait(object):
+class TwoTowerMixin(object):
     """
     Simplifying utilities for generic calls to query/candidate
     embedding models with optional context.
