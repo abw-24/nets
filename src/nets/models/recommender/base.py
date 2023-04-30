@@ -34,7 +34,7 @@ class TwoTowerMixin(object):
     embedding models with optional context.
     """
 
-    # To be overwritten / implemented in mixin classes
+    # To be overwritten / implemented in child classes
     _query_model = None
     _query_context_flag = None
     _query_context_features = None
