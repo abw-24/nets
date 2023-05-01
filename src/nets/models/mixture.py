@@ -6,7 +6,7 @@ from nets.models.base import BaseTFKerasModel
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class GatedMixtureABC(BaseTFKerasModel):
+class GatedMixture(BaseTFKerasModel):
     """
     Gated mixture of experts.
 
@@ -19,7 +19,7 @@ class GatedMixtureABC(BaseTFKerasModel):
     """
 
     def __init__(self, n_experts, expert_dim, spectral_norm=False,
-                 name="GatedMixtureABC", **kwargs):
+                 name="GatedMixture", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
