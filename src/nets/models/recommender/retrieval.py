@@ -57,12 +57,11 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
 
     """
     Sequential mixture of experts (MoE).
+    Inspired by: https://arxiv.org/pdf/1902.08588.pdf
 
      The sequential layers are not intended to be generative / trained
      causally. Windows of historical items of a fixed size should be used
       as the query model inputs, and a single item as the label (candidate).
-
-    Inspired by: https://arxiv.org/pdf/1902.08588.pdf
     """
 
     def __init__(self, query_id, candidate_id, embedding_dim=32,
