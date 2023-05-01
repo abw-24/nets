@@ -8,8 +8,8 @@ from nets.models.base import BaseTFRecommenderModel
 @tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
 
-    def __init__(self, name="TwoTowerABC"):
-        super().__init__(name=name)
+    def __init__(self, name="TwoTowerABC", **kwargs):
+        super().__init__(name=name, **kwargs)
 
     @property
     def query_id(self):
@@ -34,15 +34,15 @@ class TwoTowerMixin(object):
     embedding models with optional context.
     """
 
-    # To be overwritten / implemented in child classes
-    _query_model = None
-    _query_context_flag = None
-    _query_context_features = None
-    _query_id = None
-    _candidate_model = None
-    _candidate_context_flag = None
-    _candidate_context_features = None
-    _candidate_id = None
+    # To be assigned/implemented in child classes
+    _query_model: tf.keras.Model
+    _query_context_flag: bool
+    _query_context_features: list[str]
+    _query_id: str
+    _candidate_model: tf.keras.Model
+    _candidate_context_flag: bool
+    _candidate_context_features: list[str]
+    _candidate_id: str
 
     def _query_model_with_context(self, inputs):
         """

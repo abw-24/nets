@@ -11,20 +11,20 @@ from nets.models.mixture import GatedMixture
 class EmbeddingMixin(object):
     """
     Common concrete methods for StringEmbedding and HashEmbedding.
-    Class attributes specified below expected to be re-assigned by
-    the implemented child classes (where appropriate).
+    Class attributes specified below expected to be assigned by
+    the implemented child classes (where needed).
     """
 
-    _embedding_dim = None
-    _max_length = None
-    _position_encoding = None
-    _position_encoder = None
-    _position_encoding_flag = None
-    _embed = None
-    _lookup = None
-    _context_model = None
-    _context_flag = None
-    _masking = None
+    _embedding_dim: int
+    _max_length: int
+    _position_encoding: str
+    _position_encoding_flag: bool
+    _position_encoder: tf.keras.layers.Layer
+    _embed: tf.keras.layers.Layer
+    _lookup: tf.keras.layers.Layer
+    _context_model: tf.keras.Model
+    _context_flag: bool
+    _masking: bool
 
     def _set_position_encoder(self):
 
