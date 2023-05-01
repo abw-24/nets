@@ -11,8 +11,8 @@ from nets.models.mixture import GatedMixture
 class EmbeddingMixin(object):
     """
     Common concrete methods for StringEmbedding and HashEmbedding.
-    Class attributes specified below expected to be re-assigned by
-    the implemented child classes (where appropriate).
+    Class attributes specified below are expected to be re-assigned in the
+    init methods of inheriting children.
     """
 
     _embedding_dim = None
@@ -172,6 +172,13 @@ class HashEmbedding(EmbeddingMixin, BaseTFKerasModel):
 
 @tf.keras.utils.register_keras_serializable("nets")
 class DeepHashEmbedding(BaseTFKerasModel):
+    """
+    Hash embedding with additional FF layer on the end.
+
+    Note: does not inherit from the EmbeddingMixin, instead creating a
+    composite of a `HashEmbedding` submodel, followed by a dense FF block,
+     and finally a last dense linear layer.
+    """
 
     _feedforward_config = {
         "hidden_dims": [32],
@@ -255,6 +262,10 @@ class DeepHashEmbedding(BaseTFKerasModel):
     @property
     def feedforward_config(self):
         return self._feedforward_config
+
+    @property
+    def embedding(self):
+        return self._embedding
 
 
 @tf.keras.utils.register_keras_serializable("nets")

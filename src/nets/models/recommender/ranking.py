@@ -2,11 +2,11 @@ import tensorflow as tf
 import tensorflow_recommenders as tfrs
 import tensorflow_ranking as tfr
 
-from .base import TwoTowerABC, TwoTowerTrait
+from .base import TwoTowerABC, TwoTowerMixin
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRanking(TwoTowerABC, TwoTowerTrait):
+class TwoTowerRanking(TwoTowerABC, TwoTowerMixin):
 
     """
     Basic pointwise two tower ranking.
