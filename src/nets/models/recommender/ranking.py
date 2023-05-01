@@ -6,7 +6,7 @@ from .base import TwoTowerABC, TwoTowerMixin
 
 
 @tf.keras.utils.register_keras_serializable("nets")
-class TwoTowerRanking(TwoTowerABC, TwoTowerMixin):
+class TwoTowerRanking(TwoTowerMixin, TwoTowerABC):
 
     """
     Basic pointwise two tower ranking.
