@@ -1,5 +1,5 @@
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 import tensorflow as tf
 
 from nets.models.base import BaseTFRecommenderModel
@@ -8,8 +8,8 @@ from nets.models.base import BaseTFRecommenderModel
 @tf.keras.utils.register_keras_serializable("nets")
 class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
 
-    def __init__(self, name="TwoTowerABC"):
-        super().__init__(name=name)
+    def __init__(self, name="TwoTowerABC", **kwargs):
+        super().__init__(name=name, **kwargs)
 
     @property
     def query_id(self):
@@ -28,13 +28,14 @@ class TwoTowerABC(BaseTFRecommenderModel, metaclass=ABCMeta):
         return self._candidate_model
 
 
-class TwoTowerTrait(object):
+class TwoTowerMixin(object):
     """
     Simplifying utilities for generic calls to query/candidate
     embedding models with optional context.
     """
 
-    # To be overwritten / implemented in mixin classes
+    #TODO: add type hints
+    # To be re-assigned / implemented in child classes
     _query_model = None
     _query_context_flag = None
     _query_context_features = None
