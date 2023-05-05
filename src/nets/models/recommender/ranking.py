@@ -1,8 +1,12 @@
+
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 import tensorflow_ranking as tfr
 
 from .base import TwoTowerABC, TwoTowerMixin
+from .embedding import SequentialDeepHashEmbeddingMixtureOfExperts, \
+    DeepHashEmbedding
+from ..mlp import MLP
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -168,4 +172,64 @@ class ListwiseTwoTowerRanking(TwoTowerRanking):
                 labels=labels,
                 predictions=tf.squeeze(scores, axis=-1),
                 compute_metrics=not training
+        )
+
+
+@tf.keras.utils.register_keras_serializable("nets")
+class SequentialMixtureOfExpertsRanking(TwoTowerRanking):
+
+    """
+    Sequential mixture of experts (MoE) for item ranking.
+    Inspired by: https://arxiv.org/pdf/1902.08588.pdf
+
+    The sequential layers are not intended to be generative / trained
+     causally. Windows of historical items of a fixed size should be used
+     as the query model inputs.
+
+    The pure ranking model assumes the candidate model is a simple
+    (non-sequential) user embedding, and the rank target is continuous.
+    """
+
+    def __init__(self, rank_target, query_id, candidate_id, embedding_dim=32,
+                 context_model=None, context_features=None,
+                 query_context_features=None, candidate_context_features=None,
+                 loss=None, name="SequentialMixtureOfExpertsRanking"):
+
+        self._embedding_dim = embedding_dim
+        self._hash_embedding_dim = 128
+
+        # Query model is a sequential mixture -- see model for details
+        query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
+                hash_embedding_dim=self._hash_embedding_dim,
+                embedding_dim=self._embedding_dim,
+                masking=True
+        )
+
+        # Candidate model is a simple (non-sequential) hash embedder
+        candidate_model = DeepHashEmbedding(
+                hash_embedding_dim=self._hash_embedding_dim,
+                embedding_dim=self._embedding_dim
+        )
+
+        # Target model is a dense FF layer + a 1-dim linear output layer
+        target_model = MLP(
+            hidden_dims=[self._embedding_dim],
+            output_dim=1,
+            output_activation="linear",
+            spectral_norm=True,
+        )
+
+        super().__init__(
+                target_model=target_model,
+                query_model=query_model,
+                candidate_model=candidate_model,
+                rank_target=rank_target,
+                query_id=query_id,
+                candidate_id=candidate_id,
+                context_model=context_model,
+                context_features=context_features,
+                query_context_features=query_context_features,
+                candidate_context_features=candidate_context_features,
+                loss=loss,
+                name=name
         )

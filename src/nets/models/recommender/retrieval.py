@@ -56,7 +56,7 @@ class TwoTowerRetrieval(TwoTowerMixin, TwoTowerABC):
 class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
 
     """
-    Sequential mixture of experts (MoE).
+    Sequential mixture of experts (MoE) for item-to-item retrieval.
     Inspired by: https://arxiv.org/pdf/1902.08588.pdf
 
      The sequential layers are not intended to be generative / trained
