@@ -186,7 +186,7 @@ class SequentialMixtureOfExpertsRanking(TwoTowerRanking):
      causally. Windows of historical items of a fixed size should be used
      as the query model inputs.
 
-    The pure ranking model assumes the candidate model is a simple
+    The pure ranking MoE model assumes the candidate model is a simple
     (non-sequential) user embedding, and the rank target is continuous.
     """
 
