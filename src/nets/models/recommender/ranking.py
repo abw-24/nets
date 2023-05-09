@@ -217,6 +217,8 @@ class SequentialMixtureOfExpertsRanking(TwoTowerRanking):
             output_dim=1,
             output_activation="linear",
             spectral_norm=True,
+            kernel_regularizer=tf.keras.regularizers.L2(),
+            activity_regularizer=tf.keras.regularizers.L1()
         )
 
         super().__init__(
