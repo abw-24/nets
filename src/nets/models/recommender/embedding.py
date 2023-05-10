@@ -422,7 +422,7 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
     """
 
     def __init__(self, hash_embedding_dim=128, embedding_dim=32, masking=False,
-                 context=True, name="SequentialDeepHashEmbeddingMixture",
+                 context=False, name="SequentialDeepHashEmbeddingMixture",
                  **kwargs):
 
         super().__init__(
