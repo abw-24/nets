@@ -50,6 +50,12 @@ class EmbeddingMixin(object):
         embedding_id, context = inputs
         embeddings = self._embed.__call__(self._lookup.__call__(embedding_id))
 
+        # If we have a positional encoder, call and add
+        if self._position_encoding_flag:
+            encodings = self._position_encoder.__call__(embeddings)
+            embeddings = embeddings + encodings
+
+        # If we have context, embed and concatenate to token embeddings
         if self._context_flag:
             context_embeddings = self._context_model.__call__(context)
             # Concat along the last (embedding) axis.
@@ -57,11 +63,6 @@ class EmbeddingMixin(object):
             embeddings = tf.concat(
                     [embeddings, context_embeddings], -1
             )
-
-        # If we have a positional encoder, call and add
-        if self._position_encoding_flag:
-            encodings = self._position_encoder.__call__(embeddings)
-            embeddings = embeddings + encodings
 
         return embeddings
 
@@ -421,7 +422,8 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
     """
 
     def __init__(self, hash_embedding_dim=128, embedding_dim=32, masking=False,
-                 name="SequentialDeepHashEmbeddingMixture", **kwargs):
+                 context=True, name="SequentialDeepHashEmbeddingMixture",
+                 **kwargs):
 
         super().__init__(
                 n_experts=2,
@@ -433,6 +435,19 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
         self._hash_embedding_dim = hash_embedding_dim
         self._embedding_dim = embedding_dim
         self._masking = masking
+        self._context = context
+
+        long_context_model = None
+        short_context_model = None
+
+        # If context is specified, create simple FF layers for each expert
+        if self._context:
+            long_context_model = tf.keras.layers.Dense(
+                    units=self._embedding_dim, activation="relu"
+            )
+            short_context_model = tf.keras.layers.Dense(
+                    units=self._embedding_dim, activation="relu"
+            )
 
         # Long range model is multi-head self attention + FF
         long_range_model = SequentialDeepHashEmbeddingWithAttention(
@@ -444,7 +459,8 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
                 attention_heads=4,
                 attention_concat=True,
                 attention_causal_mask=False,
-                masking=self._masking
+                masking=self._masking,
+                context_model=long_context_model
         )
 
         # Short range model is GRU + FF
@@ -452,7 +468,8 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
                 hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim,
                 feedforward_config={"hidden_dims": [64]},
-                masking=self._masking
+                masking=self._masking,
+                context_model=short_context_model
         )
 
         # Set experts
@@ -484,6 +501,7 @@ class SequentialDeepHashEmbeddingMixtureOfExperts(GatedMixture):
         config.update({
             "hash_embedding_dim": self._hash_embedding_dim,
             "embedding_dim": self._embedding_dim,
-            "masking": self._masking
+            "masking": self._masking,
+            "context": self._context
         })
         return config
