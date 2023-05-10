@@ -16,9 +16,3 @@ class GaussianSampling(tf.keras.layers.Layer):
                        tf.shape(z_mean)[1])
         )
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
-
-    def get_config(self):
-        return super(GaussianSampling, self).get_config()
-
-
-
