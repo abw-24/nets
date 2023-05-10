@@ -19,7 +19,7 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
 
     def __init__(self, encoding_dims, latent_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
-                 spectral_norm=False, sparse_flag=False, name="DGVE", **kwargs):
+                 spectral_norm=False, name="DGVE", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -29,7 +29,6 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
         self._activity_regularizer = activity_regularizer
         self._kernel_regularizer = kernel_regularizer
         self._spectral_norm = spectral_norm
-        self._sparse_flag = sparse_flag
 
         self._input_layer = None
         self._encode_block = DenseBlock(
@@ -70,14 +69,9 @@ class GaussianDenseVariationalEncoder(BaseTFKerasModel):
             "activation": self._activation,
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer,
-            "spectral_norm": self._spectral_norm,
-            "sparse_flag": self._sparse_flag
+            "spectral_norm": self._spectral_norm
         })
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -86,7 +80,7 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
     def __init__(self, decoding_dims, output_dim, activation="relu",
                  activity_regularizer=None, kernel_regularizer=None,
                  spectral_norm=False, reconstruction_activation="linear",
-                 sparse_flag=False, name="DGVD", **kwargs):
+                 name="DGVD", **kwargs):
 
         super().__init__(name=name, **kwargs)
 
@@ -97,7 +91,6 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
         self._kernel_regularizer = kernel_regularizer
         self._spectral_norm = spectral_norm
         self._reconstruction_activation = reconstruction_activation
-        self._sparse_flag = sparse_flag
 
         self._input_layer = None
         self._decode_block = DenseBlock(
@@ -133,14 +126,9 @@ class GaussianDenseVariationalDecoder(BaseTFKerasModel):
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer,
             "spectral_norm": self._spectral_norm,
-            "reconstruction_activation": self._reconstruction_activation,
-            "sparse_flag": self._sparse_flag
+            "reconstruction_activation": self._reconstruction_activation
         })
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
 
 
 @tf.keras.utils.register_keras_serializable("nets")
@@ -157,7 +145,7 @@ class GaussianDenseVAE(BaseTFKerasModel):
                  activation="relu", activity_regularizer=None,
                  kernel_regularizer=None, spectral_norm=False,
                  reconstruction_activation="linear", discrepancy_loss="mmd",
-                 sparse_flag=False, name="VAE", **kwargs):
+                 name="VAE", **kwargs):
 
         super().__init__(name=name,  **kwargs)
 
@@ -170,7 +158,6 @@ class GaussianDenseVAE(BaseTFKerasModel):
         self._spectral_norm = spectral_norm
         self._reconstruction_activation = reconstruction_activation
         self._discrepancy_loss = discrepancy_loss.lower()
-        self._sparse_flag = sparse_flag
 
         self._loss_tracker = tf.keras.metrics.Mean(
                 name="loss"
@@ -302,14 +289,9 @@ class GaussianDenseVAE(BaseTFKerasModel):
             "activity_regularizer": self._activity_regularizer,
             "kernel_regularizer": self._kernel_regularizer,
             "spectral_norm": self._spectral_norm,
-            "discrepancy_loss": self._discrepancy_loss,
-            "sparse_flag": self._sparse_flag
+            "discrepancy_loss": self._discrepancy_loss
         })
         return config
-
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
 
     @property
     def encoder(self):
