@@ -176,7 +176,6 @@ class SequentialMixtureOfExpertsMultiTask(SequentialMixtureOfExpertsRanking):
                 context_model=context_model,
                 context_features=context_features,
                 query_context_features=query_context_features,
-                candidate_context_features=candidate_context_features,
                 loss=loss,
                 name=name
         )
