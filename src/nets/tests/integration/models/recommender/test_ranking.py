@@ -14,6 +14,8 @@ from nets.tests.integration.models.base import ModelIntegrationABC, \
 from nets.tests.utils import obj_from_config
 
 
+#TODO: add test class for SequentialMixtureOfExpertsRanking
+
 #TODO: add context model tests
 class TestTwoTowerRanking(RecommenderIntegrationMixin, ModelIntegrationABC, TC):
     """

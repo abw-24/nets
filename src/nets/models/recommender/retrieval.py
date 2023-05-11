@@ -65,7 +65,7 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
     """
 
     def __init__(self, query_id, candidate_id, embedding_dim=32,
-                 query_context_features=None, candidate_context_features=None,
+                 query_context_features=None,
                  name="SelfAttentionMixtureOfExpertsRetrieval", **kwargs):
 
         self._embedding_dim = embedding_dim
@@ -75,7 +75,8 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
         query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
                 hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim,
-                masking=True
+                masking=True,
+                context=query_context_features is not None
         )
 
         # Candidate model is a simple (non-sequential) hash embedder + FF
@@ -90,7 +91,6 @@ class SequentialMixtureOfExpertsRetrieval(TwoTowerRetrieval):
                 query_id=query_id,
                 candidate_id=candidate_id,
                 query_context_features=query_context_features,
-                candidate_context_features=candidate_context_features,
                 name=name,
                 **kwargs
         )

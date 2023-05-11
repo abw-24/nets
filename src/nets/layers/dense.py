@@ -43,7 +43,7 @@ class DenseBlock(tf.keras.layers.Layer):
 
     def call(self, inputs, training=False):
         outputs = inputs
-        # Should be AutoGraph convertible -- no side effects
+        # AutoGraph convertible -- no side effects
         for layer in self._block_layers:
             outputs = layer.__call__(outputs)
         return outputs
