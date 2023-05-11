@@ -188,12 +188,14 @@ class SequentialMixtureOfExpertsRanking(TwoTowerRanking):
 
     The pure ranking MoE model assumes the candidate model is a simple
     (non-sequential) user embedding, and the rank target is continuous.
+    The query and candidate embeddings are concatenated and fed to the
+    target model, which is just a feedforward block with 1-dim output.
     """
 
     def __init__(self, rank_target, query_id, candidate_id, embedding_dim=32,
                  context_model=None, context_features=None,
-                 query_context_features=None, candidate_context_features=None,
-                 loss=None, name="SequentialMixtureOfExpertsRanking"):
+                 query_context_features=None, loss=None,
+                 name="SequentialMixtureOfExpertsRanking"):
 
         self._embedding_dim = embedding_dim
         self._hash_embedding_dim = 128
@@ -202,7 +204,8 @@ class SequentialMixtureOfExpertsRanking(TwoTowerRanking):
         query_model = SequentialDeepHashEmbeddingMixtureOfExperts(
                 hash_embedding_dim=self._hash_embedding_dim,
                 embedding_dim=self._embedding_dim,
-                masking=True
+                masking=True,
+                context=query_context_features is not None
         )
 
         # Candidate model is a simple (non-sequential) hash embedder
@@ -231,7 +234,6 @@ class SequentialMixtureOfExpertsRanking(TwoTowerRanking):
                 context_model=context_model,
                 context_features=context_features,
                 query_context_features=query_context_features,
-                candidate_context_features=candidate_context_features,
                 loss=loss,
                 name=name
         )
